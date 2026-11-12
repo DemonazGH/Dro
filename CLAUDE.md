@@ -54,8 +54,10 @@ the model, and `docs/ROADMAP.md` for what to do next.
   Anthropic SDK and has been tested only with a stand-in client, not
   against the real API.
 - `dro/publish.py` sends the post to Telegram when the secrets
-  `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. It has been tested only
-  with a stand-in for the Telegram API. No other channel is automated.
+  `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
+  and the first post reached the owner's channel on 2026-11-12, sent by the
+  "Send the latest post again" workflow. A delivery from the scheduled
+  daily run has not been seen yet. No other channel is automated.
 
 ## Commands
 

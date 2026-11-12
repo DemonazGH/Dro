@@ -78,7 +78,9 @@ came from an error and must not be presented as the fly's.
       queues it if it repeats.
 - [x] Telegram: the post and the activity picture are sent when the two
       secrets exist.
-- [ ] First real Telegram post, once the owner has added the secrets.
+- [x] First real Telegram post: sent on 2026-11-12 by the "Send the latest
+      post again" workflow, after a first attempt failed on a wrong chat id.
+- [ ] See a post arrive from the scheduled daily run.
 - [ ] Other channels, one at a time, where the platform allows automated
       posting and the owner has API access.
 
