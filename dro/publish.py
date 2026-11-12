@@ -3,6 +3,7 @@
 Usage::
 
     python -m dro.publish runs/2026-11-13.md
+    python -m dro.publish                      # the newest post in runs/
 
 A channel is switched on by giving it credentials in the environment; in
 GitHub Actions these come from repository secrets. Without credentials
@@ -27,6 +28,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from .decide import log_order
 from .draft import post_text
 
 TELEGRAM_API = "https://api.telegram.org/bot{token}/{method}"
@@ -95,11 +97,20 @@ def send_telegram(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Send a post to the channels that are switched on.")
-    parser.add_argument("draft", type=Path, help="a draft written by python -m dro.draft")
+    parser.add_argument("draft", nargs="?", type=Path, help="a post written by python -m dro.draft")
+    parser.add_argument("--runs", type=Path, default=Path("runs"), help="where to look for the newest post")
     args = parser.parse_args(argv)
 
-    text = post_text(args.draft.read_text(encoding="utf-8"))
-    photo = args.draft.with_suffix(".png")
+    draft = args.draft
+    if draft is None:
+        posts = [path for path in args.runs.glob("*.md") if log_order(path)[0]]
+        if not posts:
+            print(f"no posts in {args.runs}", file=sys.stderr)
+            return 1
+        draft = max(posts, key=log_order)
+    print(f"post: {draft}")
+    text = post_text(draft.read_text(encoding="utf-8"))
+    photo = draft.with_suffix(".png")
     token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not (token and chat):
         print("telegram: not switched on (TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are not both set)")
@@ -108,6 +119,11 @@ def main(argv: list[str] | None = None) -> int:
         called = send_telegram(text, photo if photo.exists() else None, token, chat)
     except RuntimeError as error:
         print(f"telegram: failed. {error}", file=sys.stderr)
+        print(
+            "Check that TELEGRAM_CHAT_ID names the channel (@its_name, or a numeric id that starts "
+            "with -100), not the bot, and that the bot is an administrator of that channel.",
+            file=sys.stderr,
+        )
         return 1
     print(f"telegram: sent ({', '.join(called)})")
     return 0

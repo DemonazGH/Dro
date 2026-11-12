@@ -16,7 +16,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Thirty tests pass (`python -m pytest -q`).
+- Thirty-one tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -104,7 +104,8 @@ python -m dro.publish runs/2026-11-13.md              # send a post; needs the T
 - `dro/publish.py`: sends a post to Telegram (`send_telegram`). Standard
   library only.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
-  (measure a pair and queue it), `tests.yml`.
+  (measure a pair and queue it), `publish.yml` (send the newest post again
+  after a failed delivery), `tests.yml`.
 
 ## Rules
 

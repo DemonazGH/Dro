@@ -108,7 +108,7 @@ by code, never by the language model:
 ```text
 Decided by the fly: "tabs", 33 steering spikes against 0.
 Done by the rig: the question, the two pictures and the early vision. The picture with more contrast usually wins; today it did.
-Worded from a template. Posted automatically, no human edited it.
+Worded from a template. Automatic post, no human edited it.
 Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read.
 ```
 
@@ -139,6 +139,11 @@ and the footer says that nobody edited it.
 **Switch on the language model.** Add the secret `ANTHROPIC_API_KEY`. From
 the next run on, the text of the post is worded by Claude instead of a
 template. This path has not yet run against the real API.
+
+**Send the latest post again.** Actions, "Send the latest post again",
+"Run workflow". Use it after fixing a secret, when a run asked the fly but
+could not deliver the post. It sends the newest post in `runs/` and asks
+the fly nothing.
 
 **Switch something off.** Delete its secret. To pause the whole thing,
 disable the workflow on its page in the Actions tab.

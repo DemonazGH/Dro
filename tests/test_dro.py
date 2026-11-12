@@ -11,6 +11,7 @@ from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log
 from dro.draft import main as draft_main
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
+from dro.publish import main as publish_main
 from dro.publish import multipart, send_telegram
 from dro.repeat import add_to_queue, note, repeats, summary
 from dro.repeat import run as repeat_run
@@ -353,7 +354,7 @@ def test_cli_asks_the_next_question_of_the_queue(tmp_path):
 
 def test_unattended_draft_says_nobody_edited_it():
     draft = build(run_log(), "2026-11-12.json", unattended=True)
-    assert "Worded from a template. Posted automatically, no human edited it." in draft
+    assert "Worded from a template. Automatic post, no human edited it." in draft
     assert "edited by the human" not in draft
     published = post_text(draft)
     assert NOTES_MARKER not in published and "Seed" not in published
@@ -438,3 +439,14 @@ def test_telegram_failure_does_not_leak_the_token():
         raise AssertionError("a refused message must raise")
     body, content_type = multipart({"chat_id": "1"}, "photo", "a.png", b"x")
     assert body.endswith(b"--\r\n") and "boundary=" in content_type
+
+
+def test_publish_picks_the_newest_post_and_stays_quiet_without_credentials(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    for name in ("2026-11-12.md", "2026-11-12-4.md", "2026-11-12-3.md"):
+        (tmp_path / name).write_text(build(run_log(), name, unattended=True))
+    assert publish_main(["--runs", str(tmp_path)]) == 0
+    printed = capsys.readouterr().out
+    assert "2026-11-12-4.md" in printed and "not switched on" in printed
+    assert publish_main(["--runs", str(tmp_path / "empty")]) == 1

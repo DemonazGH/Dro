@@ -181,7 +181,7 @@ def footer(known: dict, worded_by_model: bool, unattended: bool = False) -> str:
         rig += f'today that was "{known["loser"]}", and the fly went the other way.'
 
     words = "Worded by a language model" if worded_by_model else "Worded from a template"
-    words += ". Posted automatically, no human edited it." if unattended else ", edited by the human."
+    words += ". Automatic post, no human edited it." if unattended else ", edited by the human."
     return "\n".join(
         [fly, rig, words, "Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read."]
     )
@@ -203,7 +203,7 @@ def editor_notes(known: dict, log_name: str, worded_by_model: bool, unattended: 
         lines.append("Warning: fewer than five steering spikes in total. Say that the margin is tiny.")
     source = "a language model" if worded_by_model else "a fixed template"
     if unattended:
-        return "\n".join(lines + [f"The post above came from {source} and was posted automatically."])
+        return "\n".join(lines + [f"The post above came from {source} and was sent out automatically."])
     lines += [
         f"The post above came from {source}. Before publishing:",
         '- If you rewrite it in your own words, change that footer line to "Written by the human: every word."',
