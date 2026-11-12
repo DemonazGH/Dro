@@ -65,5 +65,5 @@ came from an error and must not be presented as the fly's.
 
 ## 5. Products and formats
 
-See `docs/CONCEPT.md`: the "portrait through a fly's eyes" paid product, the
+See `docs/CONCEPT.md`: the "portrait through a fly's eyes" poster, the
 "fly is my boss for 30 days" series, the Telegram pet bot.

@@ -6,7 +6,7 @@ options, reads a choice from its steering neurons and commits a run log. The
 owner (GitHub: DemonazGH) publishes posts about the results by hand.
 
 Read `README.md` for how the pipeline works, `docs/CONCEPT.md` for the persona
-and the business idea, `docs/CALIBRATION_NOTES.md` for what has been tried on
+and the formats, `docs/CALIBRATION_NOTES.md` for what has been tried on
 the model, and `docs/ROADMAP.md` for what to do next.
 
 ## Current state (2026-11-12)
@@ -89,9 +89,9 @@ python -m dro.repeat --a yes --b no                   # same pair, 20 seeds, ~4 
   output of a particular question.
 - **Data stays out of git.** `data/` is ignored. The connectome is downloaded
   at build time; its SHA-256 hashes go into `info.json` and every run log.
-- **MaleCNS only.** It is CC BY 4.0, so commercial use is allowed with
-  attribution. Do not add FlyWire data: it is reported to be CC BY-NC, and
-  this project is meant to earn money. Keep the attribution text in
+- **MaleCNS only.** It is CC BY 4.0, so any use is allowed with
+  attribution. Do not add FlyWire data: it is reported to be CC BY-NC, which
+  would limit what can be done with this project. Keep the attribution text in
   `README.md` and in `dro/decide.py` (`ATTRIBUTION`).
 - **Nothing is posted automatically.** Workflows may write files to `runs/`
   and nothing else. Publishing to any social network is done by the owner.
