@@ -12,8 +12,9 @@ owner says so.
 - [x] Run "Dro decides" by hand once. The graph build and the commit of the
       run log work; the whole job took 63 s. The log matches a run of the
       same date on another machine spike for spike.
-- [ ] Check that the second run restores the graph from the cache instead
-      of building it again.
+- [x] Check that the second run restores the graph from the cache instead
+      of building it again. It does: the build step is skipped and the job
+      takes about 50 s.
 
 ## 2. Calibrate the model
 

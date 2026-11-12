@@ -17,7 +17,8 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - Sixteen tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
-  first graph build. A cache hit on a later run has not been seen yet.
+  first graph build, and about 50 s on the second run with the graph
+  restored from the cache.
 - **The neuron model is checked.** `dro/sim.py` matches the published code
   of Shiu et al. and the synapse strength is re-fitted to 0.10 mV with the
   paper's sugar-to-MN9 experiment (`python -m dro.sanity` passes for the
