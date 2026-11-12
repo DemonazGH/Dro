@@ -226,6 +226,10 @@ def main(argv: list[str] | None = None) -> int:
         base_dir=args.question.parent,
     )
     record = {"date": date, **record, "runtime_s": round(time.time() - started, 1)}
+    # What is already known about how often this pair gives the same winner.
+    # Written by a human into the question file and passed on unchanged.
+    if "repeatability" in spec:
+        record["repeatability"] = spec["repeatability"]
 
     args.runs.mkdir(parents=True, exist_ok=True)
     stem = date

@@ -1,10 +1,12 @@
 """Tests that run on a tiny hand-made network, without the real connectome."""
 
+import json
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from dro.decide import decide, make_seed
+from dro.decide import decide, main, make_seed
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
 from dro.repeat import run as repeat_run
@@ -191,3 +193,24 @@ def test_repeat_counts_winners():
     assert (counted["a"], counted["b"], counted["undecided"]) == (2, 1, 1)
     assert counted["same_winner_share"] == 0.5
     assert counted["mean_toward_a"] == 5.0
+
+
+def test_cli_writes_a_log_and_passes_on_the_repeatability_note(tmp_path):
+    graph = eye_graph()
+    compiled = tmp_path / "compiled"
+    compiled.mkdir()
+    sparse.save_npz(compiled / "graph.npz", graph.weights)
+    graph.meta.to_csv(compiled / "neurons.csv", index=False)
+    (compiled / "info.json").write_text(json.dumps(graph.info))
+    question = tmp_path / "question.json"
+    question.write_text(
+        json.dumps({"question": "q", "a": "yes", "b": "no", "repeatability": "measured: 20 of 20"})
+    )
+    arguments = ["--question", str(question), "--graph", str(compiled), "--runs", str(tmp_path / "runs")]
+    arguments += ["--date", "2026-01-01", "--duration-ms", "100", "--no-raster"]
+    assert main(arguments) == 0
+    log = json.loads((tmp_path / "runs" / "2026-01-01.json").read_text())
+    assert log["repeatability"] == "measured: 20 of 20"
+    assert log["options"] == {"a": "yes", "b": "no"}
+    assert main(arguments) == 0  # a second run on the same date gets its own file
+    assert (tmp_path / "runs" / "2026-01-01-2.json").exists()

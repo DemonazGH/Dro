@@ -53,14 +53,18 @@ To change the question, edit `question.json`:
 
 ```json
 {
-  "question": "Should we ship on Friday?",
-  "a": "ship on Friday",
-  "b": "wait until Monday"
+  "question": "Tabs or spaces?",
+  "a": "tabs",
+  "b": "spaces",
+  "repeatability": "Measured with python -m dro.repeat: tabs won 20 of 20 runs."
 }
 ```
 
 An option is either a short text or the path of an image file next to
-`question.json`.
+`question.json`. `repeatability` is optional: a sentence on how often this
+pair gave the same winner when measured. It is copied into the run log
+unchanged. Measure a new pair with `python -m dro.repeat` before asking it;
+a pair that has not been measured may be a coin toss.
 
 ## How a decision is made
 

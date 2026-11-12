@@ -14,7 +14,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Fifteen tests pass (`python -m pytest -q`).
+- Sixteen tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build. A cache hit on a later run has not been seen yet.
@@ -38,6 +38,9 @@ the model, and `docs/ROADMAP.md` for what to do next.
   symmetry test and is not used (experiment 19); do not reintroduce it
   without a new independent check. See the open questions in
   `docs/CALIBRATION_NOTES.md`.
+- `question.json` holds "tabs / spaces", a pair measured at 20 of 20. A new
+  question must be measured with `dro.repeat` first and carry the result in
+  its `repeatability` field.
 - No post writing and no publishing code exists yet.
 
 ## Commands
