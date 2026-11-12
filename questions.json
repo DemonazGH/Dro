@@ -196,5 +196,11 @@
     "a": "squash",
     "b": "merge commit",
     "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: merge commit won 20 of 20 runs, 53.8 steering spikes against 0.0 on average. merge commit is also the picture with more contrast (50.9 Hz of input against 31.6 Hz)."
+  },
+  {
+    "question": "Ask or search?",
+    "a": "ask",
+    "b": "search",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: ask won 20 of 20 runs, 37.9 steering spikes against 0.1 on average. search is the picture with more contrast (34.4 Hz of input against 30.4 Hz)."
   }
 ]
