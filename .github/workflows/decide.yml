@@ -1,0 +1,52 @@
+name: Dro decides
+
+on:
+  schedule:
+    - cron: "23 6 * * *" # every day at 06:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dro-decides
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore the compiled graph
+        id: graph
+        uses: actions/cache@v4
+        with:
+          path: data/compiled
+          key: graph-male-cns-v1.0-${{ hashFiles('dro/graph.py') }}
+
+      - name: Build the graph (first run only, downloads about 1.1 GB)
+        if: steps.graph.outputs.cache-hit != 'true'
+        run: |
+          python -m dro.graph --raw data/raw --out data/compiled
+          rm -rf data/raw
+
+      - name: Ask the fly
+        run: python -m dro.decide --question question.json --graph data/compiled --runs runs
+
+      - name: Commit the run log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runs
+          git diff --cached --quiet || git commit -m "Dro decides: $(date -u +%F)"
+          git push
