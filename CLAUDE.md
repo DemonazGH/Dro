@@ -16,7 +16,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Thirty-two tests pass (`python -m pytest -q`).
+- Forty tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -53,6 +53,11 @@ the model, and `docs/ROADMAP.md` for what to do next.
   `ANTHROPIC_API_KEY` the text is worded by Claude; that path uses the
   Anthropic SDK and has been tested only with a stand-in client, not
   against the real API.
+- **Fly Gate** (`action.yml`, `dro/gate.py`) shows the fly the lines a pull
+  request adds against the lines it removes and comments with the verdict.
+  It runs on pull requests to this repository through
+  `.github/workflows/fly-gate.yml` and never blocks a merge. The comment
+  always says it is not a code review.
 - `dro/publish.py` sends the post to Telegram when the secrets
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
@@ -75,6 +80,7 @@ python -m dro.repeat --a yes --b no --question "Yes or no?" --add-to questions.j
 python -m dro.draft                                   # newest run log to drafts/
 python -m dro.draft --llm                             # same, worded by a language model
 python -m dro.publish runs/2026-11-13.md              # send a post; needs the Telegram variables
+git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
 ```
 
 ## Code map
@@ -105,9 +111,16 @@ python -m dro.publish runs/2026-11-13.md              # send a post; needs the T
   installs it only when the key exists.
 - `dro/publish.py`: sends a post to Telegram (`send_telegram`). Standard
   library only.
+- `dro/gate.py`: Fly Gate (`changed_lines`, `look`, `comment`,
+  `post_comment`). Talks to the GitHub API with the standard library.
+- `action.yml`: Fly Gate as a composite GitHub Action. Other repositories
+  use it as `DemonazGH/Dro@main`, so `main` must always work: the action
+  installs `requirements.txt` and runs `dro.graph` and `dro.gate` from the
+  checked-out action.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
   (measure a pair and queue it), `publish.yml` (send the newest post again
-  after a failed delivery), `tests.yml`.
+  after a failed delivery), `fly-gate.yml` (Fly Gate on this repository's
+  pull requests), `tests.yml`.
 
 ## Rules
 

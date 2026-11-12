@@ -1,0 +1,19 @@
+name: Fly Gate
+
+# The fly looks at every pull request to this repository. It comments and
+# never blocks a merge.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  fly-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./

@@ -1,0 +1,67 @@
+name: Fly Gate
+description: >-
+  A simulation of a fruit fly's wiring diagram looks at your pull request and
+  turns towards the new lines or the old ones. Not a code review.
+author: DemonazGH
+branding:
+  icon: eye
+  color: yellow
+
+inputs:
+  github-token:
+    description: Token used to read the pull request and to post the comment.
+    default: ${{ github.token }}
+  enforce:
+    description: Fail the job when the fly prefers the old lines ("true" or "false").
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install what the simulation needs
+      shell: bash
+      run: pip install -q -r "$GITHUB_ACTION_PATH/requirements.txt"
+
+    - name: Find the version of the graph builder
+      id: builder
+      shell: bash
+      run: echo "hash=$(sha256sum "$GITHUB_ACTION_PATH/dro/graph.py" | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the compiled wiring diagram
+      id: graph
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/dro-graph
+        key: dro-graph-male-cns-v1.0-${{ steps.builder.outputs.hash }}
+
+    - name: Build the wiring diagram (first run only, downloads about 1.1 GB)
+      if: steps.graph.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
+      run: |
+        python -m dro.graph --raw "$RUNNER_TEMP/dro-raw" --out "$RUNNER_TEMP/dro-graph"
+        rm -rf "$RUNNER_TEMP/dro-raw"
+
+    - name: Show the pull request to the fly
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ENFORCE: ${{ inputs.enforce }}
+      run: |
+        flags=""
+        if [ "$ENFORCE" = "true" ]; then flags="--enforce"; fi
+        python -m dro.gate --graph "$RUNNER_TEMP/dro-graph" --out "$RUNNER_TEMP/fly-gate" $flags
+
+    - name: Keep the activity picture
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fly-gate
+        path: ${{ runner.temp }}/fly-gate
+        if-no-files-found: ignore

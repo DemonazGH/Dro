@@ -160,6 +160,64 @@ python -m dro.draft --llm                # the same, worded by a language model
 python -m dro.publish runs/2026-11-13.md # send a post; needs the Telegram variables
 ```
 
+## Fly Gate
+
+Fly Gate lets the fly look at pull requests. Add this workflow to any
+repository:
+
+```yaml
+name: Fly Gate
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  fly-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: DemonazGH/Dro@main
+```
+
+On every pull request, and on every push to it, the action:
+
+1. Draws the first lines the pull request adds as one picture and the first
+   lines it removes as another: about eight lines of twenty characters each.
+2. Shows the simulated brain one picture per eye, then swaps the eyes, as in
+   the daily run.
+3. Posts one comment, and updates it on later pushes: "LGTM" if the
+   steering neuron fired more towards the new lines, "changes requested" if
+   towards the old ones, "no opinion" if equally. The comment shows the
+   spikes of the steering neuron, says what the fly did and what the rig
+   did, and says that this is not a code review.
+
+The seed comes from the repository, the pull request number and the head
+commit, so running the job again on the same commit gives the same answer.
+The first run in a repository downloads the wiring diagram (about 1.1 GB)
+and takes about a minute; later runs restore it from the cache.
+
+By default the action never fails a job. With `enforce: "true"` it fails
+when the fly prefers the old lines:
+
+```yaml
+      - uses: DemonazGH/Dro@main
+        with:
+          enforce: "true"
+```
+
+Pull requests from forks get a read-only token, so there the verdict
+appears on the page of the run instead of as a comment. The activity
+picture is attached to the run as an artifact named `fly-gate`.
+
+To ask the fly about any diff from a command line:
+
+```bash
+git diff main... | python -m dro.gate --patch -
+```
+
+Fly Gate decides nothing about the code. The fly cannot read; pictures of
+code are dense, the two sides suppress each other, and the margin is often
+a few spikes, which the comment then calls a coin toss.
+
 ## Layout
 
 | Path | What it holds |
@@ -173,6 +231,8 @@ python -m dro.publish runs/2026-11-13.md # send a post; needs the Telegram varia
 | `dro/repeat.py` | Runs one pair many times: how often does the same option win? |
 | `dro/draft.py` | Turns a run log into a post with the "who did what" footer |
 | `dro/publish.py` | Sends a post to the channels that are switched on |
+| `dro/gate.py` | Fly Gate: shows the fly a pull request and comments on it |
+| `action.yml` | Fly Gate as a GitHub Action for other repositories |
 | `questions.json` | The queue of questions, each measured before it was added |
 | `runs/` | One log and one picture per run |
 | `tests/` | Tests on tiny hand-made networks (`python -m pytest`) |
