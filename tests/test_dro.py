@@ -6,13 +6,14 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from dro.decide import decide, input_by_option, main, make_seed
-from dro.draft import NOTES_MARKER, build, facts, footer, latest_log
+from dro.decide import decide, input_by_option, main, make_seed, next_question
+from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
 from dro.draft import main as draft_main
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
+from dro.publish import multipart, send_telegram
+from dro.repeat import add_to_queue, note, repeats, summary
 from dro.repeat import run as repeat_run
-from dro.repeat import summary
 from dro.sanity import sugar_neurons, verdict
 from dro.sim import simulate
 from dro.stimulus import CANVAS, local_contrast, render, views
@@ -316,3 +317,124 @@ def test_draft_cli_picks_the_newest_log(tmp_path):
     assert latest_log(runs).name == "2026-11-12-2.json"
     assert draft_main(["--runs", str(runs), "--out", str(tmp_path / "drafts")]) == 0
     assert (tmp_path / "drafts" / "2026-11-12-2.md").read_text().count("Decided by the fly:") == 1
+
+
+def test_next_question_takes_unasked_first_then_the_oldest(tmp_path):
+    queue = [{"question": "q1", "a": "tabs", "b": "spaces"},
+             {"question": "q2", "a": "yes", "b": "no"},
+             {"question": "q3", "a": "cat", "b": "dog"}]
+    assert next_question(queue, tmp_path)["question"] == "q1"
+    (tmp_path / "2026-11-12.json").write_text(json.dumps({"options": {"a": "ship", "b": "wait"}}))
+    (tmp_path / "2026-11-12-2.json").write_text(json.dumps({"options": {"a": "tabs", "b": "spaces"}}))
+    assert next_question(queue, tmp_path)["question"] == "q2"
+    (tmp_path / "2026-11-13.json").write_text(json.dumps({"options": {"a": "no", "b": "yes"}}))
+    (tmp_path / "2026-11-14.json").write_text(json.dumps({"options": {"a": "cat", "b": "dog"}}))
+    assert next_question(queue, tmp_path)["question"] == "q1"  # all asked: the oldest comes round again
+
+
+def test_cli_asks_the_next_question_of_the_queue(tmp_path):
+    graph = eye_graph()
+    compiled = tmp_path / "compiled"
+    compiled.mkdir()
+    sparse.save_npz(compiled / "graph.npz", graph.weights)
+    graph.meta.to_csv(compiled / "neurons.csv", index=False)
+    (compiled / "info.json").write_text(json.dumps(graph.info))
+    queue = tmp_path / "questions.json"
+    queue.write_text(json.dumps([{"question": "q1", "a": "yes", "b": "no", "repeatability": "r1"},
+                                 {"question": "q2", "a": "cat", "b": "dog"}]))
+    arguments = ["--queue", str(queue), "--graph", str(compiled), "--runs", str(tmp_path / "runs")]
+    arguments += ["--date", "2026-01-01", "--duration-ms", "100", "--no-raster"]
+    assert main(arguments) == 0 and main(arguments) == 0
+    first = json.loads((tmp_path / "runs" / "2026-01-01.json").read_text())
+    second = json.loads((tmp_path / "runs" / "2026-01-01-2.json").read_text())
+    assert (first["question"], first["repeatability"]) == ("q1", "r1")
+    assert second["question"] == "q2" and "repeatability" not in second
+
+
+def test_unattended_draft_says_nobody_edited_it():
+    draft = build(run_log(), "2026-11-12.json", unattended=True)
+    assert "Worded from a template. Posted automatically, no human edited it." in draft
+    assert "edited by the human" not in draft
+    published = post_text(draft)
+    assert NOTES_MARKER not in published and "Seed" not in published
+    assert published.endswith("It is not alive and it cannot read.")
+
+
+def test_posts_from_the_language_model_are_filtered():
+    assert acceptable("Leadership is a window. I walked into it.")
+    assert not acceptable("As a conscious being, I chose tabs.")
+    assert not acceptable("You should invest in bananas.")
+    assert not acceptable("word " * 200)
+
+
+def test_repeat_note_and_queue(tmp_path):
+    rows = [{"choice": "a", "toward_a": 30, "toward_b": 2, "input_a": 41.8, "input_b": 34.2,
+             "by_input": "a"}] * 18
+    rows += [{"choice": "b", "toward_a": 1, "toward_b": 3, "input_a": 41.8, "input_b": 34.2,
+              "by_input": "a"}] * 2
+    assert repeats(summary(rows))
+    assert not repeats(summary(rows[:2] + rows[-2:]))
+    text = note("tabs", "spaces", rows, "2026-11-12")
+    assert "tabs won 18 of 20 runs" in text
+    assert "tabs is also the picture with more contrast (41.8 Hz of input against 34.2 Hz)" in text
+    queue = tmp_path / "questions.json"
+    assert add_to_queue(queue, "Tabs or spaces?", "tabs", "spaces", text)
+    assert not add_to_queue(queue, "Spaces or tabs?", "spaces", "tabs", text)
+    assert json.loads(queue.read_text()) == [
+        {"question": "Tabs or spaces?", "a": "tabs", "b": "spaces", "repeatability": text}
+    ]
+
+
+class FakeTelegram:
+    """Stands in for urllib.request.urlopen and records what was sent."""
+
+    def __init__(self, answer=None):
+        self.requests = []
+        self.answer = answer or {"ok": True}
+
+    def __call__(self, request, timeout):
+        self.requests.append(request)
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *unused):
+        return False
+
+    def read(self):
+        return json.dumps(self.answer).encode()
+
+
+def test_telegram_sends_the_picture_with_the_post_as_caption(tmp_path):
+    photo = tmp_path / "2026-11-13.png"
+    photo.write_bytes(b"png bytes")
+    fake = FakeTelegram()
+    assert send_telegram("the post", photo, "TOKEN", "@flycorp", opener=fake) == ["sendPhoto"]
+    request = fake.requests[0]
+    assert request.full_url == "https://api.telegram.org/botTOKEN/sendPhoto"
+    assert b'name="caption"\r\n\r\nthe post' in request.data
+    assert b"png bytes" in request.data
+    assert request.get_header("Content-type").startswith("multipart/form-data; boundary=")
+
+
+def test_telegram_sends_long_posts_as_a_separate_message(tmp_path):
+    photo = tmp_path / "2026-11-13.png"
+    photo.write_bytes(b"png bytes")
+    fake = FakeTelegram()
+    long_post = "word " * 300
+    assert send_telegram(long_post, photo, "TOKEN", "1", opener=fake) == ["sendPhoto", "sendMessage"]
+    assert b"caption" not in fake.requests[0].data
+    assert json.loads(fake.requests[1].data) == {"chat_id": "1", "text": long_post}
+    assert send_telegram("short", None, "TOKEN", "1", opener=FakeTelegram()) == ["sendMessage"]
+
+
+def test_telegram_failure_does_not_leak_the_token():
+    try:
+        send_telegram("x", None, "SECRET", "1", opener=FakeTelegram({"ok": False, "description": "chat not found"}))
+    except RuntimeError as error:
+        assert "chat not found" in str(error) and "SECRET" not in str(error)
+    else:
+        raise AssertionError("a refused message must raise")
+    body, content_type = multipart({"chat_id": "1"}, "photo", "a.png", b"x")
+    assert body.endswith(b"--\r\n") and "boundary=" in content_type

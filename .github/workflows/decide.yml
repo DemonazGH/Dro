@@ -9,13 +9,19 @@ permissions:
   contents: write
 
 concurrency:
-  group: dro-decides
+  group: dro-writes
   cancel-in-progress: false
 
 jobs:
   decide:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Optional. A channel is switched on by adding its secrets; the
+      # language model by adding its key. Without them the steps are skipped.
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,13 +46,36 @@ jobs:
           python -m dro.graph --raw data/raw --out data/compiled
           rm -rf data/raw
 
-      - name: Ask the fly
-        run: python -m dro.decide --question question.json --graph data/compiled --runs runs
+      - name: Ask the fly the next question in the queue
+        run: python -m dro.decide --queue questions.json --graph data/compiled --runs runs
 
-      - name: Commit the run log
+      - name: Install the language model client
+        if: env.ANTHROPIC_API_KEY != ''
+        run: pip install anthropic
+
+      - name: Write the post
+        id: post
+        run: |
+          flags=""
+          if [ -n "$ANTHROPIC_API_KEY" ]; then flags="$flags --llm"; fi
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then flags="$flags --unattended"; fi
+          post=$(python -m dro.draft --runs runs --out runs $flags | tail -n 1 | sed 's/^draft: //')
+          echo "post=$post" >> "$GITHUB_OUTPUT"
+          {
+            echo '```text'
+            cat "$post"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the run log and the post
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add runs
           git diff --cached --quiet || git commit -m "Dro decides: $(date -u +%F)"
           git push
+
+      - name: Publish to the channels that are switched on
+        env:
+          POST: ${{ steps.post.outputs.post }}
+        run: python -m dro.publish "$POST"

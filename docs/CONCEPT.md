@@ -36,7 +36,8 @@ uses and keep it consistent.
 
 ## How it works
 
-The fly chooses, a language model words it, a human publishes.
+The fly chooses, a template or a language model words it, and the post
+goes out on its own to the channels the owner has switched on.
 
 1. **Data.** MaleCNS v1.0, licensed CC BY.
 2. **Stimulus.** The fly cannot read. Options are shown as pictures.
@@ -47,7 +48,8 @@ The fly chooses, a language model words it, a human publishes.
 5. **Text.** A language model receives only the choice and the mood and
    writes the post in Dro's voice.
 6. **Publishing.** Scheduled run in a public repository, log of every run
-   committed there, keys in secrets. A human presses "publish".
+   committed there, keys in secrets. The post is sent automatically to the
+   channels that are switched on.
 
 ## Formats by platform
 
@@ -118,8 +120,10 @@ brewery campaign.
   ([The Desk](https://thedesk.net/2026/07/youtube-clamps-down-loq-quality-ai-slop/)).
   Protection: own simulation, own code, the owner's voice or commentary on
   screen, varied formats. Dro gives no financial advice.
-- **Automated posting.** A human publishes. Accounts are labelled as
-  automated where the platform provides for it.
+- **Automated posting.** Every automatic post says in its footer that no
+  human edited it, and accounts are labelled as automated where the
+  platform provides for it. Only channels whose rules allow bots are
+  automated; the rest are posted by hand.
 - **Tokens.** A regulated financial product with a reputational tail. Out
   of scope.
 - **Big words.** No "uploaded consciousness", no "living fly". A connectome

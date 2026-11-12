@@ -68,6 +68,20 @@ came from an error and must not be presented as the fly's.
 - [x] Drafts go to a file for the owner to edit. No posting.
 - [ ] Try `--llm` against the real API once the owner has a key.
 
+## 3a. Run without the owner
+
+- [x] A queue of measured questions (`questions.json`); the daily run takes
+      the next one.
+- [x] The daily run writes the post, commits it to `runs/` and shows it on
+      the run page.
+- [x] "Add a question" workflow: measures a pair in GitHub Actions and
+      queues it if it repeats.
+- [x] Telegram: the post and the activity picture are sent when the two
+      secrets exist.
+- [ ] First real Telegram post, once the owner has added the secrets.
+- [ ] Other channels, one at a time, where the platform allows automated
+      posting and the owner has API access.
+
 ## 4. Fly Gate
 
 - [ ] GitHub Action that comments on a pull request with the fly's verdict

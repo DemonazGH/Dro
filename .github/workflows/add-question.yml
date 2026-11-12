@@ -1,0 +1,74 @@
+name: Add a question
+
+# Measures a pair of options 20 times and, if one of them wins at least 16
+# times, appends the question to the queue in questions.json.
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: 'The question, for example "Tabs or spaces?"'
+        required: true
+      a:
+        description: "First option, a word or two"
+        required: true
+      b:
+        description: "Second option, a word or two"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dro-writes
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore the compiled graph
+        id: graph
+        uses: actions/cache@v4
+        with:
+          path: data/compiled
+          key: graph-male-cns-v1.0-${{ hashFiles('dro/graph.py') }}
+
+      - name: Build the graph (only if it is not cached, downloads about 1.1 GB)
+        if: steps.graph.outputs.cache-hit != 'true'
+        run: |
+          python -m dro.graph --raw data/raw --out data/compiled
+          rm -rf data/raw
+
+      - name: Measure the pair
+        env:
+          QUESTION: ${{ inputs.question }}
+          OPTION_A: ${{ inputs.a }}
+          OPTION_B: ${{ inputs.b }}
+        run: |
+          python -m dro.repeat --a "$OPTION_A" --b "$OPTION_B" --question "$QUESTION" \
+            --add-to questions.json | tee "$RUNNER_TEMP/measured.txt"
+          {
+            echo '```text'
+            tail -n 3 "$RUNNER_TEMP/measured.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the queue
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add questions.json
+          git diff --cached --quiet || git commit -m "Add a measured question to the queue"
+          git push

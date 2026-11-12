@@ -2,7 +2,8 @@
 
 Usage::
 
-    python -m dro.decide --question question.json --graph data/compiled
+    python -m dro.decide --graph data/compiled                 # next question in questions.json
+    python -m dro.decide --question my.json --graph data/compiled  # one particular question
 
 How a decision is made:
 
@@ -27,6 +28,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -77,6 +79,27 @@ def input_by_option(trials: list[dict]) -> tuple[dict, str]:
     if rate["a"] == rate["b"]:
         return rate, "tie"
     return rate, "a" if rate["a"] > rate["b"] else "b"
+
+
+def log_order(path: Path) -> tuple:
+    """Sort key for run logs: date, then the run number within that date."""
+    match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})(?:-(\d+))?", path.stem)
+    return (match.group(1), int(match.group(2) or 1)) if match else ("", 0)
+
+
+def next_question(queue: list[dict], runs: Path) -> dict:
+    """The question to ask next.
+
+    The first entry of the queue whose pair of options has no run log yet.
+    Once every entry has been asked, the one asked longest ago. The choice
+    depends only on the queue and the logs, never on a result.
+    """
+    last_asked = {}
+    logs = sorted((path for path in runs.glob("*.json") if log_order(path)[0]), key=log_order)
+    for position, path in enumerate(logs):
+        options = json.loads(path.read_text(encoding="utf-8")).get("options", {})
+        last_asked[frozenset(options.values())] = position
+    return min(queue, key=lambda entry: last_asked.get(frozenset((entry["a"], entry["b"])), -1))
 
 
 def make_seed(date: str, question: str, option_a: str, option_b: str) -> int:
@@ -221,7 +244,8 @@ def save_raster(graph: Graph, result, path: Path, title: str, sample: int = 6000
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Let the fly choose between two options.")
-    parser.add_argument("--question", type=Path, default=Path("question.json"))
+    parser.add_argument("--question", type=Path, help="a file with one question; overrides --queue")
+    parser.add_argument("--queue", type=Path, default=Path("questions.json"), help="the question queue")
     parser.add_argument("--graph", type=Path, default=Path("data/compiled"))
     parser.add_argument("--runs", type=Path, default=Path("runs"))
     parser.add_argument("--date", help="run date, YYYY-MM-DD (default: today, UTC)")
@@ -230,7 +254,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-raster", action="store_true")
     args = parser.parse_args(argv)
 
-    spec = json.loads(args.question.read_text(encoding="utf-8"))
+    if args.question:
+        source = args.question
+        spec = json.loads(source.read_text(encoding="utf-8"))
+    else:
+        source = args.queue
+        spec = next_question(json.loads(source.read_text(encoding="utf-8")), args.runs)
     question, option_a, option_b = spec["question"], spec["a"], spec["b"]
     date = args.date or dt.datetime.now(dt.timezone.utc).date().isoformat()
     seed = args.seed if args.seed is not None else make_seed(date, question, option_a, option_b)
@@ -244,7 +273,7 @@ def main(argv: list[str] | None = None) -> int:
         option_b,
         seed,
         duration_ms=args.duration_ms,
-        base_dir=args.question.parent,
+        base_dir=source.parent,
     )
     record = {"date": date, **record, "runtime_s": round(time.time() - started, 1)}
     # What is already known about how often this pair gives the same winner.

@@ -106,7 +106,7 @@ Still two regimes. At 0.20 mV and 150 Hz the runaway is milder, 448
 descending neurons are active and steering fires on both sides. This is the
 closest point to a usable regime so far.
 
-## Setup for experiments 6 to 21 (2026-11-12)
+## Setup for experiments 6 to 22 (2026-11-12)
 
 - Graph: as above. A second graph with 5 or more synapses per connection
   (6,185,843 connections) was built for comparison.
@@ -696,6 +696,45 @@ for the option (average of left and right eye).
 The first four pairs (experiment 16) were not typical: they held two of
 the six pairs that do not repeat and the only repeating pair that goes
 against the input.
+
+## Experiment 22: 18 more pairs, for the question queue
+
+`python -m dro.repeat`, 20 runs per pair, seeds 10 to 200. The list was
+written down before the runs.
+
+| Pair (a / b) | a won | b won | Undecided | Mean steering spikes a / b | Input a / b, Hz | Winner has more input |
+| --- | --- | --- | --- | --- | --- | --- |
+| vim / emacs | 20 | 0 | 0 | 16.6 / 3.5 | 28.2 / 35.0 | no |
+| linux / windows | 20 | 0 | 0 | 47.1 / 0.0 | 43.2 / 26.0 | yes |
+| monday / friday | 0 | 20 | 0 | 0.0 / 35.1 | 28.2 / 46.0 | yes |
+| office / remote | 20 | 0 | 0 | 36.5 / 0.1 | 44.2 / 33.4 | yes |
+| docker / podman | 20 | 0 | 0 | 6.2 / 0.8 | 31.0 / 28.4 | yes |
+| bug / feature | 20 | 0 | 0 | 57.2 / 0.0 | 41.6 / 32.1 | yes |
+| plan / improvise | 20 | 0 | 0 | 101.0 / 0.0 | 48.9 / 24.1 | yes |
+| meeting / email | 0 | 20 | 0 | 0.0 / 13.0 | 27.9 / 44.8 | yes |
+| test / pray | 0 | 20 | 0 | 6.5 / 40.6 | 35.0 / 47.9 | yes |
+| cloud / basement | 20 | 0 | 0 | 13.4 / 0.0 | 44.4 / 23.7 | yes |
+| lunch / deadline | 20 | 0 | 0 | 10.6 / 0.0 | 38.6 / 26.1 | yes |
+| python / powershell | 20 | 0 | 0 | 23.6 / 0.0 | 34.2 / 24.0 | yes |
+| squash / merge commit | 0 | 20 | 0 | 0.0 / 53.8 | 31.6 / 50.9 | yes |
+| ask / search | 20 | 0 | 0 | 37.9 / 0.1 | 30.4 / 34.4 | no |
+| yaml / json | 0 | 19 | 1 | 3.6 / 10.1 | 51.7 / 40.4 | no |
+| standup / sit-down | 19 | 0 | 1 | 3.1 / 0.0 | 35.0 / 25.4 | yes |
+| kanban / scrum | 0 | 13 | 7 | 0.1 / 1.4 | 30.1 / 41.9 | yes |
+| frontend / backend | 0 | 10 | 10 | 0.2 / 0.8 | 27.6 / 26.1 | no |
+
+- 16 of 18 pairs repeat (same winner in at least 16 of 20 runs).
+- In 13 of those 16 the winner has more input. Three pairs repeat against
+  the contrast: "vim / emacs" and "ask / search" in all 20 runs, "yaml /
+  json" in 19. So the brain does overturn the rig's number at times, and
+  when it does, it does so consistently.
+- The two pairs that do not repeat are decided by about one spike in total.
+
+Together with experiment 21: 34 of 42 pairs repeat, and in 30 of those 34
+the winner is the picture with more contrast. Seven of the 42 are decided
+by fewer than five steering spikes in total.
+
+`questions.json` holds the repeating pairs of both experiments.
 
 ## Open questions and ideas
 

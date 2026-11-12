@@ -1,0 +1,200 @@
+[
+  {
+    "question": "Tabs or spaces?",
+    "a": "tabs",
+    "b": "spaces",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: tabs won 20 of 20 runs, 34.6 steering spikes against 0.1 on average. tabs is also the picture with more contrast (41.8 Hz of input against 34.2 Hz)."
+  },
+  {
+    "question": "Yes or no?",
+    "a": "yes",
+    "b": "no",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: yes won 20 of 20 runs, 66.3 steering spikes against 13.1 on average. yes is also the picture with more contrast (34.5 Hz of input against 23.9 Hz)."
+  },
+  {
+    "question": "Deploy or rollback?",
+    "a": "deploy",
+    "b": "rollback",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: deploy won 20 of 20 runs, 6.6 steering spikes against 0.0 on average. deploy is also the picture with more contrast (33.5 Hz of input against 28.0 Hz)."
+  },
+  {
+    "question": "Stay or go?",
+    "a": "stay",
+    "b": "go",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: stay won 20 of 20 runs, 71.1 steering spikes against 30.9 on average. stay is also the picture with more contrast (41.3 Hz of input against 30.2 Hz)."
+  },
+  {
+    "question": "Beach or mountains?",
+    "a": "beach",
+    "b": "mountains",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: beach won 20 of 20 runs, 19.4 steering spikes against 0.0 on average. beach is also the picture with more contrast (38.4 Hz of input against 20.9 Hz)."
+  },
+  {
+    "question": "Call or text?",
+    "a": "call",
+    "b": "text",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: call won 20 of 20 runs, 19.6 steering spikes against 11.1 on average. call is also the picture with more contrast (34.6 Hz of input against 33.9 Hz)."
+  },
+  {
+    "question": "Monolith or microservices?",
+    "a": "monolith",
+    "b": "microservices",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: monolith won 20 of 20 runs, 7.2 steering spikes against 0.0 on average. monolith is also the picture with more contrast (22.6 Hz of input against 17.1 Hz)."
+  },
+  {
+    "question": "Light theme or dark theme?",
+    "a": "light",
+    "b": "dark",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: light won 20 of 20 runs, 19.9 steering spikes against 1.3 on average. light is also the picture with more contrast (55.4 Hz of input against 43.2 Hz)."
+  },
+  {
+    "question": "Early or late?",
+    "a": "early",
+    "b": "late",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: early won 20 of 20 runs, 19.4 steering spikes against 3.2 on average. early is also the picture with more contrast (48.9 Hz of input against 31.6 Hz)."
+  },
+  {
+    "question": "Left or right?",
+    "a": "left",
+    "b": "right",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: right won 20 of 20 runs, 47.4 steering spikes against 4.0 on average. right is also the picture with more contrast (57.0 Hz of input against 33.2 Hz)."
+  },
+  {
+    "question": "Cat or dog?",
+    "a": "cat",
+    "b": "dog",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: dog won 20 of 20 runs, 39.6 steering spikes against 13.2 on average. dog is also the picture with more contrast (41.5 Hz of input against 29.1 Hz)."
+  },
+  {
+    "question": "Red or blue?",
+    "a": "red",
+    "b": "blue",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: blue won 20 of 20 runs, 22.2 steering spikes against 9.2 on average. blue is also the picture with more contrast (43.3 Hz of input against 32.9 Hz)."
+  },
+  {
+    "question": "Approve or reject?",
+    "a": "approve",
+    "b": "reject",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: reject won 20 of 20 runs, 19.8 steering spikes against 0.0 on average. reject is also the picture with more contrast (45.2 Hz of input against 29.6 Hz)."
+  },
+  {
+    "question": "Banana or apple?",
+    "a": "banana",
+    "b": "apple",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: apple won 20 of 20 runs, 38.5 steering spikes against 0.0 on average. apple is also the picture with more contrast (47.9 Hz of input against 29.2 Hz)."
+  },
+  {
+    "question": "Window or door?",
+    "a": "window",
+    "b": "door",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: door won 20 of 20 runs, 17.8 steering spikes against 0.0 on average. door is also the picture with more contrast (43.3 Hz of input against 28.5 Hz)."
+  },
+  {
+    "question": "Refactor or rewrite?",
+    "a": "refactor",
+    "b": "rewrite",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: rewrite won 19 of 20 runs, 5.1 steering spikes against 0.1 on average. rewrite is also the picture with more contrast (33.0 Hz of input against 26.5 Hz)."
+  },
+  {
+    "question": "Hotfix or revert?",
+    "a": "hotfix",
+    "b": "revert",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: hotfix won 18 of 20 runs, 3.0 steering spikes against 0.1 on average. hotfix is also the picture with more contrast (43.4 Hz of input against 39.0 Hz)."
+  },
+  {
+    "question": "Pizza or salad?",
+    "a": "pizza",
+    "b": "salad",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: pizza won 18 of 20 runs, 2.0 steering spikes against 0.3 on average. salad is the picture with more contrast (51.9 Hz of input against 50.2 Hz)."
+  },
+  {
+    "question": "Vim or Emacs?",
+    "a": "vim",
+    "b": "emacs",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: vim won 20 of 20 runs, 16.6 steering spikes against 3.5 on average. emacs is the picture with more contrast (35.0 Hz of input against 28.2 Hz)."
+  },
+  {
+    "question": "Linux or Windows?",
+    "a": "linux",
+    "b": "windows",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: linux won 20 of 20 runs, 47.1 steering spikes against 0.0 on average. linux is also the picture with more contrast (43.2 Hz of input against 26.0 Hz)."
+  },
+  {
+    "question": "Monday or Friday?",
+    "a": "monday",
+    "b": "friday",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: friday won 20 of 20 runs, 35.1 steering spikes against 0.0 on average. friday is also the picture with more contrast (46.0 Hz of input against 28.2 Hz)."
+  },
+  {
+    "question": "Office or remote?",
+    "a": "office",
+    "b": "remote",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: office won 20 of 20 runs, 36.5 steering spikes against 0.1 on average. office is also the picture with more contrast (44.2 Hz of input against 33.4 Hz)."
+  },
+  {
+    "question": "Docker or Podman?",
+    "a": "docker",
+    "b": "podman",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: docker won 20 of 20 runs, 6.2 steering spikes against 0.8 on average. docker is also the picture with more contrast (31.0 Hz of input against 28.4 Hz)."
+  },
+  {
+    "question": "Bug or feature?",
+    "a": "bug",
+    "b": "feature",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: bug won 20 of 20 runs, 57.2 steering spikes against 0.0 on average. bug is also the picture with more contrast (41.6 Hz of input against 32.1 Hz)."
+  },
+  {
+    "question": "Plan or improvise?",
+    "a": "plan",
+    "b": "improvise",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: plan won 20 of 20 runs, 101.0 steering spikes against 0.0 on average. plan is also the picture with more contrast (48.9 Hz of input against 24.1 Hz)."
+  },
+  {
+    "question": "Meeting or email?",
+    "a": "meeting",
+    "b": "email",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: email won 20 of 20 runs, 13.0 steering spikes against 0.0 on average. email is also the picture with more contrast (44.8 Hz of input against 27.9 Hz)."
+  },
+  {
+    "question": "YAML or JSON?",
+    "a": "yaml",
+    "b": "json",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: json won 19 of 20 runs, 10.1 steering spikes against 3.6 on average. yaml is the picture with more contrast (51.7 Hz of input against 40.4 Hz)."
+  },
+  {
+    "question": "Test or pray?",
+    "a": "test",
+    "b": "pray",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: pray won 20 of 20 runs, 40.6 steering spikes against 6.5 on average. pray is also the picture with more contrast (47.9 Hz of input against 35.0 Hz)."
+  },
+  {
+    "question": "Cloud or basement?",
+    "a": "cloud",
+    "b": "basement",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: cloud won 20 of 20 runs, 13.4 steering spikes against 0.0 on average. cloud is also the picture with more contrast (44.4 Hz of input against 23.7 Hz)."
+  },
+  {
+    "question": "Lunch or deadline?",
+    "a": "lunch",
+    "b": "deadline",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: lunch won 20 of 20 runs, 10.6 steering spikes against 0.0 on average. lunch is also the picture with more contrast (38.6 Hz of input against 26.1 Hz)."
+  },
+  {
+    "question": "Standup or sit-down?",
+    "a": "standup",
+    "b": "sit-down",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: standup won 19 of 20 runs, 3.1 steering spikes against 0.0 on average. standup is also the picture with more contrast (35.0 Hz of input against 25.4 Hz)."
+  },
+  {
+    "question": "Python or PowerShell?",
+    "a": "python",
+    "b": "powershell",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: python won 20 of 20 runs, 23.6 steering spikes against 0.0 on average. python is also the picture with more contrast (34.2 Hz of input against 24.0 Hz)."
+  },
+  {
+    "question": "Squash or merge commit?",
+    "a": "squash",
+    "b": "merge commit",
+    "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: merge commit won 20 of 20 runs, 53.8 steering spikes against 0.0 on average. merge commit is also the picture with more contrast (50.9 Hz of input against 31.6 Hz)."
+  }
+]

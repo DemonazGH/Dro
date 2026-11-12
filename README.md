@@ -11,8 +11,8 @@ Dro is not conscious, not alive and not an "uploaded" fly. It is a wiring
 diagram with a very simple neuron model on top.
 
 Status on 2026-11-12: the neuron model passes a check against a published
-result and the pictures reach the steering neuron. Of 24 test pairs, 18 gave
-the same winner in at least 16 of 20 runs. In 17 of those 18 the winner is
+result and the pictures reach the steering neuron. Of 42 test pairs, 34 gave
+the same winner in at least 16 of 20 runs. In 30 of those 34 the winner is
 the picture with more contrast, a number the rig computes before the brain
 runs. See "Known limitations".
 
@@ -39,8 +39,8 @@ pip install -r requirements.txt
 # One time: download three public tables (about 1.1 GB) and compile the graph.
 python -m dro.graph --raw data/raw --out data/compiled
 
-# Ask the fly the question in question.json.
-python -m dro.decide --question question.json --graph data/compiled
+# Ask the fly the next question in questions.json.
+python -m dro.decide --graph data/compiled
 
 # Optional: check the model against a published result (about a minute).
 python -m dro.sanity --graph data/compiled
@@ -49,22 +49,8 @@ python -m dro.sanity --graph data/compiled
 The build takes a few minutes, most of it download, and needs about 2 GB of
 memory. One decision takes about a quarter of a minute. No GPU is needed.
 
-To change the question, edit `question.json`:
-
-```json
-{
-  "question": "Tabs or spaces?",
-  "a": "tabs",
-  "b": "spaces",
-  "repeatability": "Measured with python -m dro.repeat: tabs won 20 of 20 runs."
-}
-```
-
-An option is either a short text or the path of an image file next to
-`question.json`. `repeatability` is optional: a sentence on how often this
-pair gave the same winner when measured. It is copied into the run log
-unchanged. Measure a new pair with `python -m dro.repeat` before asking it;
-a pair that has not been measured may be a coin toss.
+None of this is needed to run Dro: the daily run, the posts and new
+questions are all handled on GitHub, see "Running it without a computer".
 
 ## How a decision is made
 
@@ -95,46 +81,79 @@ be repeated until a nicer answer comes out.
 ## The daily run
 
 `.github/workflows/decide.yml` runs every day at 06:23 UTC and can also be
-started by hand from the Actions tab. On a free GitHub-hosted runner the
-first run took 63 seconds in all: 18 for downloading the tables and building
-the graph, 13 for the decision. It restores the compiled graph from the
-Actions cache (the first run builds it), asks the question in `question.json`
-and commits two files to `runs/`:
+started by hand from the Actions tab. On a free GitHub-hosted runner it takes
+about a minute; the first run also downloads the tables and builds the
+graph, later runs restore it from the Actions cache. Each run:
 
-- `YYYY-MM-DD.json`: question, options, choice, what the rig's contrast
-  number alone would have chosen, input rates and spike counts per trial,
-  seed, model constants, graph fingerprint.
-- `YYYY-MM-DD.png`: which neurons fired when in trial 1.
+1. Takes the next question from `questions.json`: the first one that has
+   not been asked yet, and once all have been asked, the one asked longest
+   ago.
+2. Asks the fly and writes `runs/YYYY-MM-DD.json` (question, options,
+   choice, what the rig's contrast number alone would have chosen, input
+   rates and spike counts per trial, seed, model constants, graph
+   fingerprint) and `runs/YYYY-MM-DD.png` (which neurons fired when in
+   trial 1).
+3. Writes the post to `runs/YYYY-MM-DD.md` and shows it on the page of the
+   run.
+4. Commits these three files.
+5. Sends the post to the channels that are switched on.
 
-Nothing is posted anywhere. Publishing is a human's job.
+### The post
 
-## From a log to a post
-
-```bash
-python -m dro.draft                        # newest log in runs/
-python -m dro.draft runs/2026-11-12.json   # a particular log
-python -m dro.draft --llm                  # worded by a language model
-```
-
-This writes a draft to `drafts/`, which is not committed. A draft holds the
-post in the persona's voice, a footer, and notes for the person who edits
-it. The post comes from a fixed template, or with `--llm` from a language
-model that is given only the question, the winner and the spike counts
-(`pip install anthropic` and an API key in `ANTHROPIC_API_KEY`).
-
-The footer is built from the log by code, never by the language model. It
-says what the fly decided, what the rig did, whether the fly agreed with the
-rig's contrast number, and who worded the post:
+A post has the text in the persona's voice and a footer. The text comes
+from a fixed template, or from a language model that is given only the
+question, the winner and the spike counts. The footer is built from the log
+by code, never by the language model:
 
 ```text
 Decided by the fly: "tabs", 33 steering spikes against 0.
 Done by the rig: the question, the two pictures and the early vision. The picture with more contrast usually wins; today it did.
-Worded from a template, edited by the human.
+Worded from a template. Posted automatically, no human edited it.
 Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read.
 ```
 
-A pair without a `repeatability` note gets a warning in the footer that it
-may be a coin toss.
+It says what the fly decided, what the rig did, whether the fly agreed
+with the rig's contrast number, and who worded the post. A question without
+a `repeatability` note gets a warning that it may be a coin toss. A post
+from the language model is thrown away, and a template used instead, if it
+is too long or contains words such as "conscious", "alive" or "invest".
+
+## Running it without a computer
+
+Everything below is done in the browser, on the repository's GitHub page.
+
+**Add a question.** Actions, "Add a question", "Run workflow". Give the
+question and two short options. The workflow asks the fly the pair 20 times
+with different seeds. If one option wins at least 16 times, the question
+goes to the end of `questions.json` with a sentence on what was measured;
+otherwise it is not added and the run page says why. To remove or reorder
+questions, edit `questions.json` in the browser.
+
+**Switch on Telegram.** Create a bot with @BotFather, make it an
+administrator of the channel, and add two repository secrets (Settings,
+"Secrets and variables", "Actions"): `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_CHAT_ID` (the channel name such as `@flycorp`, or a numeric id).
+From the next run on, the post and the activity picture go to the channel,
+and the footer says that nobody edited it.
+
+**Switch on the language model.** Add the secret `ANTHROPIC_API_KEY`. From
+the next run on, the text of the post is worded by Claude instead of a
+template. This path has not yet run against the real API.
+
+**Switch something off.** Delete its secret. To pause the whole thing,
+disable the workflow on its page in the Actions tab.
+
+Without any secrets the daily run still writes the post to `runs/`, where
+it can be copied by hand.
+
+### The same from a command line
+
+```bash
+python -m dro.repeat --a tabs --b spaces --question "Tabs or spaces?" --add-to questions.json
+python -m dro.draft                      # newest log in runs/ to drafts/, with notes for an editor
+python -m dro.draft --llm                # the same, worded by a language model
+python -m dro.publish runs/2026-11-13.md # send a post; needs the Telegram variables
+```
 
 ## Layout
 
@@ -147,8 +166,9 @@ may be a coin toss.
 | `dro/sanity.py` | Check against a published result: sugar neurons drive MN9 |
 | `dro/paths.py` | Graph search for routes to a target, and direct tests of them |
 | `dro/repeat.py` | Runs one pair many times: how often does the same option win? |
-| `dro/draft.py` | Turns a run log into a draft post with the "who did what" footer |
-| `question.json` | Today's question |
+| `dro/draft.py` | Turns a run log into a post with the "who did what" footer |
+| `dro/publish.py` | Sends a post to the channels that are switched on |
+| `questions.json` | The queue of questions, each measured before it was added |
 | `runs/` | One log and one picture per run |
 | `tests/` | Tests on tiny hand-made networks (`python -m pytest`) |
 | `docs/` | Concept, calibration notes, roadmap, one sample run |
@@ -196,20 +216,22 @@ Read these before trusting an answer from a fly.
 
 - **The rig's contrast number decides most choices.** A picture fed into
   the eye is lost two cells later in this model, so the rig computes the
-  contrast of the picture and hands it to the LC10a cells. Of 24 pairs, each
-  run 20 times, 18 gave the same winner at least 16 times, and in 17 of
+  contrast of the picture and hands it to the LC10a cells. Of 42 pairs, each
+  run 20 times, 34 gave the same winner at least 16 times, and in 30 of
   those the winner was the picture with more contrast. The brain passes the
-  difference on and sharpens it; it rarely overturns it. Every log gives the
+  difference on and sharpens it; it overturns it in about one pair in
+  nine. Every log gives the
   input rate the rig produced for each option, so this can be checked.
-- **One pair in four is a coin toss.** Pairs whose pictures have nearly the
+- **One pair in five is a coin toss.** Pairs whose pictures have nearly the
   same contrast do not repeat ("ship on Friday / wait until Monday" split 9
-  to 9). `python -m dro.repeat` measures any pair. Until a pair has been
-  measured, do not present its answer as reliable.
+  to 9). Such pairs are kept out of the question queue: a question is added
+  only after it has been measured.
 - **Some choices rest on a handful of spikes.** With both eyes driven the
-  two sides suppress each other, and four of the 24 pairs were decided by
+  two sides suppress each other, and seven of the 42 pairs were decided by
   fewer than five spikes in total.
 - **The right side dominates.** When both eyes are driven, the right
-  steering neuron fires more than the left, in all 24 pairs. The dataset has
+  steering neuron fires more than the left, in all 24 pairs where this was
+  recorded. The dataset has
   about 20 % more synapses per cell in the right optic lobe than in the
   left, in nearly every cell type, and one neuron (AOTU019) that lets each
   side silence the other turns this into a lead. This is probably the

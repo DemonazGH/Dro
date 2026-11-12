@@ -5,9 +5,10 @@ Usage::
     python -m dro.draft                      # newest log in runs/
     python -m dro.draft runs/2026-11-12.json
     python -m dro.draft --llm                # worded by a language model
+    python -m dro.draft --out runs --unattended   # what the daily job does
 
-The draft is written to ``drafts/``, which is not committed. Nothing is
-posted anywhere; publishing is a human's job.
+The draft is written to ``drafts/``, which is not committed, unless ``--out``
+says otherwise. This module posts nothing; ``publish.py`` does that.
 
 A draft has three parts:
 
@@ -25,14 +26,20 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
-from .decide import input_by_option
+from .decide import input_by_option, log_order
 
 DEFAULT_MODEL = "claude-opus-5-5"
 NOTES_MARKER = "--- notes for the editor, not part of the post ---"
+# A post from the language model is thrown away if it contains any of these:
+# claims the project never makes, and topics the persona must not advise on.
+FORBIDDEN = (
+    "conscious", "sentient", "alive", "uploaded", "invest", "stock", "crypto",
+    "diagnos", "medication", "lawsuit", "legal advice",
+)
+MAX_WORDS = 130
 
 DECIDED = (
     'They asked me: {question} I did not read the question. I cannot read. Two pictures came '
@@ -143,10 +150,18 @@ def llm_post(known: dict, model: str = DEFAULT_MODEL, client=None) -> str:
     text = "".join(block.text for block in response.content if block.type == "text").strip()
     if not text:
         raise RuntimeError("the language model returned no text")
+    if not acceptable(text):
+        raise RuntimeError("the language model's post broke a rule of the project")
     return text
 
 
-def footer(known: dict, worded_by_model: bool) -> str:
+def acceptable(text: str) -> bool:
+    """Whether a post from the language model may be used at all."""
+    lowered = text.lower()
+    return len(text.split()) <= MAX_WORDS and not any(word in lowered for word in FORBIDDEN)
+
+
+def footer(known: dict, worded_by_model: bool, unattended: bool = False) -> str:
     """Who did what. Built from the log, the same way for every post."""
     if known["decided"]:
         fly = f'Decided by the fly: "{known["winner"]}", {known["won"]} steering spikes against {known["lost"]}.'
@@ -165,17 +180,14 @@ def footer(known: dict, worded_by_model: bool) -> str:
     else:
         rig += f'today that was "{known["loser"]}", and the fly went the other way.'
 
-    words = (
-        "Worded by a language model, edited by the human."
-        if worded_by_model
-        else "Worded from a template, edited by the human."
-    )
+    words = "Worded by a language model" if worded_by_model else "Worded from a template"
+    words += ". Posted automatically, no human edited it." if unattended else ", edited by the human."
     return "\n".join(
         [fly, rig, words, "Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read."]
     )
 
 
-def editor_notes(known: dict, log_name: str, worded_by_model: bool) -> str:
+def editor_notes(known: dict, log_name: str, worded_by_model: bool, unattended: bool = False) -> str:
     """Numbers and warnings for the person who edits the draft."""
     rate = known["input_rate_hz"]
     lines = [
@@ -190,6 +202,8 @@ def editor_notes(known: dict, log_name: str, worded_by_model: bool) -> str:
     if known["won"] + known["lost"] < 5:
         lines.append("Warning: fewer than five steering spikes in total. Say that the margin is tiny.")
     source = "a language model" if worded_by_model else "a fixed template"
+    if unattended:
+        return "\n".join(lines + [f"The post above came from {source} and was posted automatically."])
     lines += [
         f"The post above came from {source}. Before publishing:",
         '- If you rewrite it in your own words, change that footer line to "Written by the human: every word."',
@@ -199,24 +213,32 @@ def editor_notes(known: dict, log_name: str, worded_by_model: bool) -> str:
     return "\n".join(lines)
 
 
-def build(record: dict, log_name: str, use_model: bool = False, model: str = DEFAULT_MODEL, client=None) -> str:
+def build(
+    record: dict,
+    log_name: str,
+    use_model: bool = False,
+    model: str = DEFAULT_MODEL,
+    client=None,
+    unattended: bool = False,
+) -> str:
     """The whole draft: post, footer, notes."""
     known = facts(record)
     post = llm_post(known, model, client) if use_model else template_post(known)
-    return "\n\n".join([post, footer(known, use_model), editor_notes(known, log_name, use_model)]) + "\n"
+    parts = [post, footer(known, use_model, unattended), editor_notes(known, log_name, use_model, unattended)]
+    return "\n\n".join(parts) + "\n"
+
+
+def post_text(draft: str) -> str:
+    """The part of a draft that is published: the post and its footer."""
+    return draft.split(NOTES_MARKER)[0].strip()
 
 
 def latest_log(runs: Path) -> Path:
     """The newest run log: latest date, then the highest run number of that date."""
-
-    def order(path: Path) -> tuple:
-        match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})(?:-(\d+))?", path.stem)
-        return (match.group(1), int(match.group(2) or 1)) if match else ("", 0)
-
-    logs = [path for path in runs.glob("*.json") if order(path)[0]]
+    logs = [path for path in runs.glob("*.json") if log_order(path)[0]]
     if not logs:
         raise FileNotFoundError(f"no run logs in {runs}")
-    return max(logs, key=order)
+    return max(logs, key=log_order)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -226,6 +248,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("drafts"))
     parser.add_argument("--llm", action="store_true", help="let a language model word the post")
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument(
+        "--unattended", action="store_true", help="the post goes out without a human editing it; say so"
+    )
     args = parser.parse_args(argv)
 
     log = args.log or latest_log(args.runs)
@@ -238,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
             print("--llm needs the anthropic package: pip install anthropic", file=sys.stderr)
             return 2
         try:
-            draft = build(record, log.name, True, args.model)
+            draft = build(record, log.name, True, args.model, unattended=args.unattended)
         except anthropic.AuthenticationError:
             print("the API key was not accepted; using a template instead", file=sys.stderr)
             use_model = False
@@ -252,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"no post from the language model ({error}); using a template instead", file=sys.stderr)
             use_model = False
     if not use_model:
-        draft = build(record, log.name)
+        draft = build(record, log.name, unattended=args.unattended)
 
     args.out.mkdir(parents=True, exist_ok=True)
     target = args.out / f"{log.stem}.md"

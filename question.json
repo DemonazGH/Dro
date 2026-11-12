@@ -1,6 +1,0 @@
-{
-  "question": "Tabs or spaces?",
-  "a": "tabs",
-  "b": "spaces",
-  "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: tabs won 20 of 20 runs. tabs is also the picture with more contrast (41.8 Hz of input against 34.2 Hz)."
-}
