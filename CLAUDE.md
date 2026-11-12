@@ -15,8 +15,9 @@ the model, and `docs/ROADMAP.md` for what to do next.
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
 - Fifteen tests pass (`python -m pytest -q`).
-- The two workflows have been syntax-checked only. They have never run on
-  GitHub.
+- The repository is public at `DemonazGH/Dro`. Both workflows have run on
+  GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
+  first graph build. A cache hit on a later run has not been seen yet.
 - **The neuron model is checked.** `dro/sim.py` matches the published code
   of Shiu et al. and the synapse strength is re-fitted to 0.10 mV with the
   paper's sugar-to-MN9 experiment (`python -m dro.sanity` passes for the
@@ -106,6 +107,6 @@ python -m dro.repeat --a yes --b no                   # same pair, 20 seeds, ~4 
 
 ## Publishing the repository
 
-The repository `DemonazGH/Dro` is meant to be public. Before the first push,
-confirm with the owner that it exists and that he wants the current state
-public, limitations included.
+The repository `DemonazGH/Dro` is public since 2026-11-12. Everything pushed
+is visible to anyone, `docs/CONCEPT.md` included. The daily job commits to
+`main`; pull before pushing.

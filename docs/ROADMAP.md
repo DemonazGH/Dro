@@ -5,11 +5,15 @@ owner says so.
 
 ## 1. Get the repository live
 
-- [ ] Owner creates the public repository `DemonazGH/Dro`.
-- [ ] Push the current state.
-- [ ] Run the "Tests" workflow and fix whatever fails on GitHub.
-- [ ] Run "Dro decides" by hand once. Check the graph build, the cache and
-      the commit of the run log. Note the real runtime in `README.md`.
+- [x] Owner creates the public repository `DemonazGH/Dro`.
+- [x] Push the current state.
+- [x] Run the "Tests" workflow and fix whatever fails on GitHub. It passed
+      on the first push, 15 tests.
+- [x] Run "Dro decides" by hand once. The graph build and the commit of the
+      run log work; the whole job took 63 s. The log matches a run of the
+      same date on another machine spike for spike.
+- [ ] Check that the second run restores the graph from the cache instead
+      of building it again.
 
 ## 2. Calibrate the model
 
