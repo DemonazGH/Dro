@@ -63,6 +63,22 @@ def _prefix_indices(graph: Graph, prefix: str) -> np.ndarray:
     return np.flatnonzero(graph.meta["type"].fillna("").str.startswith(prefix).to_numpy())
 
 
+def input_by_option(trials: list[dict]) -> tuple[dict, str]:
+    """Mean input rate the rig produced for each option, and which is higher.
+
+    This is the choice the rig's contrast rule would make on its own, before
+    the brain runs: "a", "b" or "tie".
+    """
+    shown = {"a": [], "b": []}
+    for trial in trials:
+        shown[trial["left_eye"]].append(trial["input_rate_hz_left"])
+        shown[trial["right_eye"]].append(trial["input_rate_hz_right"])
+    rate = {option: round(float(np.mean(values)), 1) for option, values in shown.items()}
+    if rate["a"] == rate["b"]:
+        return rate, "tie"
+    return rate, "a" if rate["a"] > rate["b"] else "b"
+
+
 def make_seed(date: str, question: str, option_a: str, option_b: str) -> int:
     """A seed fixed by the day and the question, so a run cannot be cherry-picked."""
     text = "\n".join([date, question, option_a, option_b]).encode()
@@ -124,6 +140,7 @@ def decide(
     else:
         choice = "undecided"
     labels = {"a": option_a, "b": option_b, "undecided": None}
+    input_rate, by_input = input_by_option(trials)
 
     record = {
         "question": question,
@@ -131,6 +148,10 @@ def decide(
         "choice": choice,
         "choice_label": labels[choice],
         "steering_spikes_toward": toward,
+        # What the rig's contrast rule alone would have chosen. When this
+        # equals "choice", the brain passed the rig's difference on.
+        "input_rate_hz": input_rate,
+        "choice_by_input_alone": by_input,
         "mood": {
             "reward_rate_hz": round(reward_spikes / max(reward.size, 1) / (2 * seconds), 2),
             "punish_rate_hz": round(punish_spikes / max(punish.size, 1) / (2 * seconds), 2),

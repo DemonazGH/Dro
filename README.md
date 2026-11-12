@@ -101,11 +101,40 @@ the graph, 13 for the decision. It restores the compiled graph from the
 Actions cache (the first run builds it), asks the question in `question.json`
 and commits two files to `runs/`:
 
-- `YYYY-MM-DD.json`: question, options, choice, input rates and spike counts
-  per trial, seed, model constants, graph fingerprint.
+- `YYYY-MM-DD.json`: question, options, choice, what the rig's contrast
+  number alone would have chosen, input rates and spike counts per trial,
+  seed, model constants, graph fingerprint.
 - `YYYY-MM-DD.png`: which neurons fired when in trial 1.
 
 Nothing is posted anywhere. Publishing is a human's job.
+
+## From a log to a post
+
+```bash
+python -m dro.draft                        # newest log in runs/
+python -m dro.draft runs/2026-11-12.json   # a particular log
+python -m dro.draft --llm                  # worded by a language model
+```
+
+This writes a draft to `drafts/`, which is not committed. A draft holds the
+post in the persona's voice, a footer, and notes for the person who edits
+it. The post comes from a fixed template, or with `--llm` from a language
+model that is given only the question, the winner and the spike counts
+(`pip install anthropic` and an API key in `ANTHROPIC_API_KEY`).
+
+The footer is built from the log by code, never by the language model. It
+says what the fly decided, what the rig did, whether the fly agreed with the
+rig's contrast number, and who worded the post:
+
+```text
+Decided by the fly: "tabs", 33 steering spikes against 0.
+Done by the rig: the question, the two pictures and the early vision. The picture with more contrast usually wins; today it did.
+Worded from a template, edited by the human.
+Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read.
+```
+
+A pair without a `repeatability` note gets a warning in the footer that it
+may be a coin toss.
 
 ## Layout
 
@@ -118,6 +147,7 @@ Nothing is posted anywhere. Publishing is a human's job.
 | `dro/sanity.py` | Check against a published result: sugar neurons drive MN9 |
 | `dro/paths.py` | Graph search for routes to a target, and direct tests of them |
 | `dro/repeat.py` | Runs one pair many times: how often does the same option win? |
+| `dro/draft.py` | Turns a run log into a draft post with the "who did what" footer |
 | `question.json` | Today's question |
 | `runs/` | One log and one picture per run |
 | `tests/` | Tests on tiny hand-made networks (`python -m pytest`) |

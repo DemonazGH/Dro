@@ -26,14 +26,16 @@ and the choice depends on the options more than on the seed.
       published code (`python -m dro.sanity`). It exposed an error in the
       simulator and a synapse strength that did not fit this dataset; both
       are fixed.
-- [ ] Compare the check with the firing rates printed in the paper.
+- [ ] Postponed: compare the check with the firing rates printed in the
+      paper. Needs the paper, which was not reachable so far.
 - [x] Find the routes from the eye to the steering neurons
       (`python -m dro.paths`). LC10a and LLPC1 lead to DNa02 of the same
       side, and that last part works in the model. The picture never gets
       that far: it is lost one step after L2.
 - [x] Place the picture on the LC10a cells and read DNa02 only. The
       picture now reaches the steering neuron.
-- [ ] Work through the open questions in `docs/CALIBRATION_NOTES.md`.
+- [ ] Postponed: work through the open questions in
+      `docs/CALIBRATION_NOTES.md`.
 - [x] Add a repeatability check (`python -m dro.repeat`). Result: 18 of 24
       pairs give the same winner in at least 16 of 20 runs.
 - [x] Add a control: the same option on both sides comes out near 50 / 50
@@ -42,9 +44,15 @@ and the choice depends on the options more than on the seed.
       right optic lobe of the dataset, turned into a lead by AOTU019. A
       correction was tried and rejected.
 - [x] Measure a few dozen pairs and report the share that repeat.
-- [ ] Measure how often the brain's winner differs from the winner by
-      contrast alone, and put both in every log.
-- [ ] Try a stand-in for the optic lobe that leaves more to the wiring.
+- [x] Put the winner by contrast alone into every log, next to the brain's
+      winner (`choice_by_input_alone`). In the 24 measured pairs the
+      majority winner went against the contrast in three: "pizza / salad",
+      "tea / coffee" and "sleep / work".
+- [ ] Postponed: try a stand-in for the optic lobe that leaves more to the
+      wiring. Research with an open outcome.
+
+The owner closed this step on 2026-11-12 with the two postponed items left
+open, together with the open questions in `docs/CALIBRATION_NOTES.md`.
 - [ ] Update "Known limitations" in `README.md` to match what is true.
 
 Until this step is done, any public post must say that the rig does the
@@ -54,9 +62,11 @@ came from an error and must not be presented as the fly's.
 
 ## 3. Words
 
-- [ ] Script that turns a run log into a draft post in Dro's voice, with the
-      fixed footer "Decided by the fly / Written by the human".
-- [ ] Drafts go to a file for the owner to edit. No posting.
+- [x] Script that turns a run log into a draft post in Dro's voice, with a
+      fixed footer saying what the fly decided, what the rig did and who
+      worded the post (`python -m dro.draft`).
+- [x] Drafts go to a file for the owner to edit. No posting.
+- [ ] Try `--llm` against the real API once the owner has a key.
 
 ## 4. Fly Gate
 

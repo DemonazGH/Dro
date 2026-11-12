@@ -6,7 +6,9 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from dro.decide import decide, main, make_seed
+from dro.decide import decide, input_by_option, main, make_seed
+from dro.draft import NOTES_MARKER, build, facts, footer, latest_log
+from dro.draft import main as draft_main
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
 from dro.repeat import run as repeat_run
@@ -144,6 +146,8 @@ def test_decide_on_toy_graph():
     assert sum(record["steering_spikes_toward"].values()) > 0
     assert record["steering_types"] == ["DNa02"]
     assert record["trials"][0]["input_rate_hz_left"] > 0
+    assert record["choice_by_input_alone"] in {"a", "b", "tie"}
+    assert set(record["input_rate_hz"]) == {"a", "b"}
 
 
 def relay_graph() -> Graph:
@@ -214,3 +218,101 @@ def test_cli_writes_a_log_and_passes_on_the_repeatability_note(tmp_path):
     assert log["options"] == {"a": "yes", "b": "no"}
     assert main(arguments) == 0  # a second run on the same date gets its own file
     assert (tmp_path / "runs" / "2026-01-01-2.json").exists()
+
+
+def test_input_by_option_follows_the_swap_of_sides():
+    trials = [
+        {"left_eye": "a", "right_eye": "b", "input_rate_hz_left": 40.0, "input_rate_hz_right": 30.0},
+        {"left_eye": "b", "right_eye": "a", "input_rate_hz_left": 32.0, "input_rate_hz_right": 44.0},
+    ]
+    assert input_by_option(trials) == ({"a": 42.0, "b": 31.0}, "a")
+    trials[1]["input_rate_hz_right"] = 22.0
+    assert input_by_option(trials) == ({"a": 31.0, "b": 31.0}, "tie")
+
+
+def run_log(choice="a", toward=(33, 0), rates=(41.8, 34.2), note="measured: 20 of 20"):
+    """A run log with only the fields a draft needs."""
+    log = {
+        "date": "2026-11-12",
+        "question": "Tabs or spaces?",
+        "options": {"a": "tabs", "b": "spaces"},
+        "choice": choice,
+        "steering_spikes_toward": {"a": toward[0], "b": toward[1]},
+        "seed": 7,
+        "trials": [
+            {"left_eye": "a", "right_eye": "b",
+             "input_rate_hz_left": rates[0], "input_rate_hz_right": rates[1]},
+            {"left_eye": "b", "right_eye": "a",
+             "input_rate_hz_left": rates[1], "input_rate_hz_right": rates[0]},
+        ],
+    }
+    if note:
+        log["repeatability"] = note
+    return log
+
+
+def test_draft_states_the_decision_and_keeps_the_footer():
+    draft = build(run_log(), "2026-11-12.json")
+    post, rest = draft.split("\n\nDecided by the fly:", 1)
+    assert "tabs" in post and "33" in post
+    assert 'Decided by the fly: "tabs", 33 steering spikes against 0.' in draft
+    assert "today it did." in draft
+    assert "Worded from a template, edited by the human." in draft
+    assert "It is not alive" in draft
+    assert NOTES_MARKER in rest
+    assert "Choice by input alone: a; choice of the pipeline: a" in draft
+
+
+def test_footer_says_when_the_fly_went_against_the_contrast():
+    known = facts(run_log(choice="b", toward=(3, 9)))
+    text = footer(known, worded_by_model=False)
+    assert 'Decided by the fly: "spaces", 9 steering spikes against 3.' in text
+    assert 'today that was "tabs", and the fly went the other way.' in text
+
+
+def test_footer_warns_about_unmeasured_pairs_and_ties():
+    known = facts(run_log(choice="undecided", toward=(4, 4), rates=(30.0, 30.0), note=None))
+    text = footer(known, worded_by_model=True)
+    assert "Decided by the fly: nothing." in text
+    assert "has not been measured for repeatability" in text
+    assert "the two had the same contrast" in text
+    assert "Worded by a language model, edited by the human." in text
+    assert "fewer than five" not in build(run_log(toward=(33, 0)), "x.json")
+    assert "fewer than five" in build(run_log(toward=(3, 1)), "x.json")
+
+
+def test_language_model_gets_only_the_decision_and_never_writes_the_footer():
+    class Block:
+        type = "text"
+        text = "  A post about tabs.  "
+
+    class Response:
+        stop_reason = "end_turn"
+        content = [Block()]
+
+    class Messages:
+        def create(self, **request):
+            self.request = request
+            return Response()
+
+    class Client:
+        def __init__(self):
+            self.beta = type("Beta", (), {"messages": Messages()})()
+
+    client = Client()
+    draft = build(run_log(), "2026-11-12.json", use_model=True, client=client)
+    assert draft.startswith("A post about tabs.\n\nDecided by the fly:")
+    assert "Worded by a language model" in draft
+    sent = json.loads(client.beta.messages.request["messages"][0]["content"])
+    assert sent == {"question": "Tabs or spaces?", "decided": True, "winner": "tabs",
+                    "loser": "spaces", "won": 33, "lost": 0}
+
+
+def test_draft_cli_picks_the_newest_log(tmp_path):
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    for name in ("2026-11-11.json", "2026-11-12.json", "2026-11-12-2.json", "notes.json"):
+        (runs / name).write_text(json.dumps(run_log()))
+    assert latest_log(runs).name == "2026-11-12-2.json"
+    assert draft_main(["--runs", str(runs), "--out", str(tmp_path / "drafts")]) == 0
+    assert (tmp_path / "drafts" / "2026-11-12-2.md").read_text().count("Decided by the fly:") == 1

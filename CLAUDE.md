@@ -14,7 +14,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Sixteen tests pass (`python -m pytest -q`).
+- Twenty-two tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -42,7 +42,13 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - `question.json` holds "tabs / spaces", a pair measured at 20 of 20. A new
   question must be measured with `dro.repeat` first and carry the result in
   its `repeatability` field.
-- No post writing and no publishing code exists yet.
+- Every log records `choice_by_input_alone`: what the rig's contrast
+  number would have chosen without the brain.
+- `python -m dro.draft` turns a log into a draft post in `drafts/` (not
+  committed). The footer comes from the log, never from a language model.
+  The `--llm` path uses the Anthropic SDK and has been tested only with a
+  stand-in client, not against the real API.
+- No publishing code exists, and none should: the owner posts by hand.
 
 ## Commands
 
@@ -56,6 +62,8 @@ python -m dro.sanity --graph data/compiled            # sugar neurons to MN9, ~1
 python -m dro.paths rank DNa02 --side R               # which visual types lead to DNa02
 python -m dro.paths drive LC10a --side R              # fire LC10a, read the steering neurons
 python -m dro.repeat --a yes --b no                   # same pair, 20 seeds, ~4 min
+python -m dro.draft                                   # newest run log to drafts/
+python -m dro.draft --llm                             # same, worded by a language model
 ```
 
 ## Code map
@@ -78,6 +86,9 @@ python -m dro.repeat --a yes --b no                   # same pair, 20 seeds, ~4 
   raster picture, CLI.
 - `dro/repeat.py`: one pair over many seeds (`run`, `summary`). A measuring
   tool only; never use it to choose a seed for a real decision.
+- `dro/draft.py`: run log to draft post (`facts`, `template_post`,
+  `llm_post`, `footer`, `editor_notes`). `anthropic` is imported only for
+  `--llm` and is not in `requirements.txt`; keep it out of the daily job.
 
 ## Rules
 
