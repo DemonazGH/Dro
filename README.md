@@ -91,8 +91,8 @@ graph, later runs restore it from the Actions cache. Each run:
 2. Asks the fly and writes `runs/YYYY-MM-DD.json` (question, options,
    choice, what the rig's contrast number alone would have chosen, input
    rates and spike counts per trial, seed, model constants, graph
-   fingerprint) and `runs/YYYY-MM-DD.png` (which neurons fired when in
-   trial 1).
+   fingerprint) and `runs/YYYY-MM-DD.png` (every neuron that fired, in both
+   trials, with the two steering neurons on top).
 3. Writes the post to `runs/YYYY-MM-DD.md` and shows it on the page of the
    run.
 4. Commits these three files.

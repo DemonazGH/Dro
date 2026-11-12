@@ -207,37 +207,111 @@ def decide(
     return record, results
 
 
-def save_raster(graph: Graph, result, path: Path, title: str, sample: int = 6000) -> None:
-    """Draw which neurons fired when, for a random sample of neurons."""
+# Bands of the activity picture, bottom to top, and the cells in each.
+PICTURE_BANDS = (
+    ("shown the picture", lambda kind, group: kind == INPUT_TYPE),
+    ("other visual cells", lambda kind, group: np.isin(group, ("ol_intrinsic", "visual_projection", "visual_centrifugal"))),
+    ("central brain", lambda kind, group: np.char.startswith(group, "cb_")),
+    ("to and from the body", lambda kind, group: np.ones(kind.shape, dtype=bool)),
+)
+AMBER, ACCENT, PAPER, INK = "#ffb000", "#ffffff", "#0b0b0d", "#c9c9c9"
+
+
+def save_raster(graph: Graph, results: list, record: dict, path: Path) -> None:
+    """Draw which neurons fired when, in both trials.
+
+    Only neurons that fired are drawn: a few hundred of the whole graph. The
+    two steering neurons get a band of their own at the top, because the
+    difference between them is what is read as the choice.
+    """
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    rng = np.random.default_rng(0)
-    order = graph.meta["superclass"].fillna("zz_unknown").to_numpy()
-    picked = np.sort(rng.choice(graph.n, size=min(sample, graph.n), replace=False))
-    picked = picked[np.argsort(order[picked], kind="stable")]
-    row_of = np.full(graph.n, -1, dtype=np.int32)
-    row_of[picked] = np.arange(picked.size)
-    rows = row_of[result.spike_neurons]
-    shown = rows >= 0
+    meta = graph.meta
+    kind = meta["type"].fillna("").to_numpy(dtype=str)
+    group = meta["superclass"].fillna("").to_numpy(dtype=str)
+    side = meta["somaSide"].fillna("").to_numpy(dtype=str)
+    fired = np.zeros(graph.n, dtype=bool)
+    for result in results:
+        fired[result.spike_neurons] = True
+    steering = np.isin(kind, STEERING_TYPES)
 
-    figure, axis = plt.subplots(figsize=(10, 5.6), dpi=120)
-    figure.patch.set_facecolor("#0b0b0d")
-    axis.set_facecolor("#0b0b0d")
-    axis.scatter(
-        result.spike_times_ms[shown], rows[shown], s=0.6, c="#ffb000", linewidths=0, alpha=0.8
+    # Give every neuron that fired a row; bands stack from the bottom.
+    row_of = np.full(graph.n, -1, dtype=np.int64)
+    unplaced = fired & ~steering
+    labels, edges, rows = [], [0], 0
+    for name, belongs in PICTURE_BANDS:
+        members = np.flatnonzero(unplaced & belongs(kind, group))
+        unplaced[members] = False
+        members = members[np.argsort(side[members], kind="stable")]  # left side below right
+        row_of[members] = rows + np.arange(members.size)
+        rows += members.size
+        labels.append((name, members.size, (edges[-1] + rows) / 2))
+        edges.append(rows)
+    rows = max(rows, 1)
+    band = max(rows * 0.09, 1.0)  # height of one steering band
+    steering_base = {"L": rows + band * 0.5, "R": rows + band * 1.75}
+    top = rows + band * 3.0
+
+    options = record["options"]
+    toward = record["steering_spikes_toward"]
+    figure, axes = plt.subplots(1, 2, figsize=(10, 6.2), dpi=120, sharey=True)
+    figure.patch.set_facecolor(PAPER)
+    for axis, result, trial in zip(axes, results, record["trials"]):
+        axis.set_facecolor(PAPER)
+        placed = row_of[result.spike_neurons]
+        shown = placed >= 0
+        axis.scatter(
+            result.spike_times_ms[shown], placed[shown] + 0.5, s=2.2, c=AMBER, linewidths=0, alpha=0.85
+        )
+        for edge in edges[1:-1]:
+            axis.axhline(edge, color="#2a2a2e", linewidth=0.6)
+        for which, base in steering_base.items():
+            cells_here = np.flatnonzero(steering & (side == which))
+            times = result.spike_times_ms[np.isin(result.spike_neurons, cells_here)]
+            axis.axhspan(base, base + band, color="#17171b", linewidth=0)
+            axis.vlines(times, base, base + band, color=ACCENT, linewidth=0.9)
+            axis.text(
+                result.duration_ms * 0.985, base + band / 2, f"{times.size} spikes",
+                color=ACCENT, fontsize=8, ha="right", va="center",
+            )
+        axis.set_xlim(0, result.duration_ms)
+        axis.set_ylim(0, top)
+        axis.set_xlabel("time, ms", color=INK, fontsize=9)
+        axis.set_title(
+            f'left eye: "{options[trial["left_eye"]]}"   right eye: "{options[trial["right_eye"]]}"',
+            color=INK, fontsize=9,
+        )
+        axis.tick_params(colors="#8a8a8a", labelsize=8, length=0)
+        for spine in axis.spines.values():
+            spine.set_color("#333333")
+
+    ticks = [(middle, f"{name}\n{count} cells") for name, count, middle in labels if count]
+    ticks += [(steering_base["L"] + band / 2, "steering neuron\nleft"),
+              (steering_base["R"] + band / 2, "steering neuron\nright")]
+    axes[0].set_yticks([position for position, _ in ticks])
+    axes[0].set_yticklabels([text for _, text in ticks], color=INK, fontsize=8)
+
+    if record["choice"] == "undecided":
+        verdict = f"undecided: {toward['a']} steering spikes each way"
+    else:
+        other = "b" if record["choice"] == "a" else "a"
+        verdict = (
+            f'turned towards "{record["choice_label"]}": '
+            f"{toward[record['choice']]} steering spikes against {toward[other]}"
+        )
+    figure.suptitle(
+        f"Dro, {record['date']}: {record['question']}", color="#f2f2f2", fontsize=13, x=0.02, ha="left", y=0.975
     )
-    axis.set_xlim(0, result.duration_ms)
-    axis.set_ylim(0, picked.size)
-    axis.set_xlabel("time, ms", color="#c9c9c9")
-    axis.set_ylabel(f"{picked.size:,} sampled neurons, grouped by class", color="#c9c9c9")
-    axis.set_title(title, color="#f2f2f2", loc="left", fontsize=11)
-    axis.tick_params(colors="#8a8a8a")
-    for spine in axis.spines.values():
-        spine.set_color("#333333")
-    figure.tight_layout()
+    figure.text(0.02, 0.915, verdict, color=AMBER, fontsize=10.5, ha="left")
+    figure.text(
+        0.98, 0.012,
+        f"every neuron that fired, of {graph.n:,} simulated; a simulation of a fly's wiring diagram, not a fly",
+        color="#8a8a8a", fontsize=7, ha="right",
+    )
+    figure.subplots_adjust(left=0.135, right=0.985, top=0.845, bottom=0.115, wspace=0.07)
     figure.savefig(path, facecolor=figure.get_facecolor())
     plt.close(figure)
 
@@ -289,7 +363,7 @@ def main(argv: list[str] | None = None) -> int:
         stem = f"{date}-{suffix}"
     if not args.no_raster:
         raster = args.runs / f"{stem}.png"
-        save_raster(graph, results[0], raster, f"Dro, {date}: {question}")
+        save_raster(graph, results, record, raster)
         record["raster"] = raster.name
     (args.runs / f"{stem}.json").write_text(
         json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

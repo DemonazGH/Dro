@@ -1,16 +1,21 @@
 {
   "date": "2026-11-12",
-  "question": "Should we ship on Friday?",
+  "question": "Tabs or spaces?",
   "options": {
-    "a": "ship on Friday",
-    "b": "wait until Monday"
+    "a": "tabs",
+    "b": "spaces"
   },
-  "choice": "b",
-  "choice_label": "wait until Monday",
+  "choice": "a",
+  "choice_label": "tabs",
   "steering_spikes_toward": {
-    "a": 67,
-    "b": 71
+    "a": 33,
+    "b": 0
   },
+  "input_rate_hz": {
+    "a": 41.8,
+    "b": 34.2
+  },
+  "choice_by_input_alone": "a",
   "mood": {
     "reward_rate_hz": 0.0,
     "punish_rate_hz": 0.0
@@ -20,27 +25,27 @@
       "trial": 1,
       "left_eye": "a",
       "right_eye": "b",
-      "input_rate_hz_left": 44.4,
-      "input_rate_hz_right": 44.9,
-      "steering_spikes_left": 21,
-      "steering_spikes_right": 52,
-      "neurons_active": 455,
-      "spikes": 22280
+      "input_rate_hz_left": 41.7,
+      "input_rate_hz_right": 34.9,
+      "steering_spikes_left": 7,
+      "steering_spikes_right": 0,
+      "neurons_active": 369,
+      "spikes": 18743
     },
     {
       "trial": 2,
       "left_eye": "b",
       "right_eye": "a",
-      "input_rate_hz_left": 42.3,
-      "input_rate_hz_right": 42.9,
-      "steering_spikes_left": 19,
-      "steering_spikes_right": 46,
-      "neurons_active": 442,
-      "spikes": 21572
+      "input_rate_hz_left": 33.5,
+      "input_rate_hz_right": 41.9,
+      "steering_spikes_left": 0,
+      "steering_spikes_right": 26,
+      "neurons_active": 376,
+      "spikes": 19269
     }
   ],
-  "total_spikes": 43852,
-  "seed": 194596107,
+  "total_spikes": 38012,
+  "seed": 1263454431,
   "duration_ms_per_trial": 1000.0,
   "max_input_rate_hz": 150.0,
   "steering_types": [
@@ -90,6 +95,7 @@
   },
   "attribution": "Connectome: MaleCNS v1.0, FlyEM Project Team at HHMI Janelia, Cambridge Connectomics Group and Google Research, CC BY 4.0 (Berg et al., Cell 2026). Neuron model: Shiu et al., Nature 2024.",
   "dro_version": "0.1.0",
-  "runtime_s": 13.5,
+  "runtime_s": 11.6,
+  "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: tabs won 20 of 20 runs, 34.6 steering spikes against 0.1 on average. tabs is also the picture with more contrast (41.8 Hz of input against 34.2 Hz).",
   "raster": "2026-11-12.png"
 }

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-from dro.decide import decide, input_by_option, main, make_seed, next_question
+from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
 from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
 from dro.draft import main as draft_main
 from dro.graph import Graph
@@ -450,3 +450,14 @@ def test_publish_picks_the_newest_post_and_stays_quiet_without_credentials(tmp_p
     printed = capsys.readouterr().out
     assert "2026-11-12-4.md" in printed and "not switched on" in printed
     assert publish_main(["--runs", str(tmp_path / "empty")]) == 1
+
+
+def test_activity_picture_is_written_for_decided_and_undecided_runs(tmp_path):
+    graph = eye_graph()
+    record, results = decide(graph, "q", "yes", "no", seed=3, duration_ms=200.0)
+    record = {"date": "2026-01-01", **record}
+    save_raster(graph, results, record, tmp_path / "decided.png")
+    record.update(choice="undecided", choice_label=None, steering_spikes_toward={"a": 4, "b": 4})
+    save_raster(graph, results, record, tmp_path / "undecided.png")
+    for name in ("decided.png", "undecided.png"):
+        assert (tmp_path / name).stat().st_size > 10_000
