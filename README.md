@@ -271,7 +271,8 @@ photograph of Grace Hopper).
 The photo is cropped to a square and shown to both eyes for one second. The
 poster shows what reached the eyes (32 x 32 points of light), what the
 object-detecting cells reported (one dot per LC10a cell, at the spot where
-that cell looks, larger where the picture has more contrast), and every
+that cell looks, over a faint copy of the photo, larger where the picture
+has more contrast), and every
 neuron that fired, with the two steering neurons on top. The same photo
 always gives the same poster. The fly sees no face, only light and dark,
 and the poster says so.

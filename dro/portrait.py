@@ -9,8 +9,9 @@ brain for one second. The poster shows, from top to bottom:
 
 1. What reached the eyes: the photo as 32 x 32 points of light.
 2. What the object-detecting cells (LC10a) reported, one dot per cell at
-   the spot where that cell looks, larger where the picture has more
-   contrast. This step is the rig's stand-in for the optic lobe.
+   the spot where that cell looks, drawn over a faint copy of the photo and
+   larger where the picture has more contrast. This step is the rig's
+   stand-in for the optic lobe.
 3. Every neuron that fired during the second, and the two steering neurons.
 
 The fly sees no face. It gets light and dark, and the poster says so.
@@ -110,11 +111,13 @@ def save_poster(graph: Graph, picture: np.ndarray, seen: dict, path: Path, name:
         axis = figure.add_subplot(grid[0, column])
         rows, cols = view_centres(seen["eye"][side])
         strength = seen["contrast"][side]
-        axis.scatter(cols, rows, s=6 + 150 * strength, c=AMBER, alpha=0.25 + 0.7 * strength, linewidths=0)
-        axis.set_xlim(-1, small)
-        axis.set_ylim(small, -1)
+        # The picture, faint, under the cells: each dot sits on the spot its cell looks at.
+        axis.imshow(patches, cmap="gray", vmin=0, vmax=255, interpolation="nearest", alpha=0.22)
+        axis.scatter(cols, rows, s=6 + 150 * strength, c=AMBER, alpha=0.3 + 0.65 * strength, linewidths=0)
+        axis.set_xlim(-0.5, small - 0.5)
+        axis.set_ylim(small - 0.5, -0.5)
         axis.set_aspect("equal")
-        frame(axis, f"what its object cells reported\n{word} eye, {strength.size} cells")
+        frame(axis, f"where its object cells look, and how\nstrongly they fired: {word} eye, {strength.size} cells")
 
     result = seen["result"]
     fired = np.zeros(graph.n, dtype=bool)
