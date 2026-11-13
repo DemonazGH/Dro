@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-13",
+  "question": "Stay or go?",
+  "options": {
+    "a": "stay",
+    "b": "go"
+  },
+  "choice": "a",
+  "choice_label": "stay",
+  "steering_spikes_toward": {
+    "a": 69,
+    "b": 33
+  },
+  "input_rate_hz": {
+    "a": 41.3,
+    "b": 30.2
+  },
+  "choice_by_input_alone": "a",
+  "mood": {
+    "reward_rate_hz": 0.0,
+    "punish_rate_hz": 0.0
+  },
+  "trials": [
+    {
+      "trial": 1,
+      "left_eye": "a",
+      "right_eye": "b",
+      "input_rate_hz_left": 41.7,
+      "input_rate_hz_right": 30.6,
+      "steering_spikes_left": 16,
+      "steering_spikes_right": 31,
+      "neurons_active": 352,
+      "spikes": 19421
+    },
+    {
+      "trial": 2,
+      "left_eye": "b",
+      "right_eye": "a",
+      "input_rate_hz_left": 29.8,
+      "input_rate_hz_right": 40.9,
+      "steering_spikes_left": 2,
+      "steering_spikes_right": 53,
+      "neurons_active": 364,
+      "spikes": 18965
+    }
+  ],
+  "total_spikes": 38386,
+  "seed": 2993564580,
+  "duration_ms_per_trial": 1000.0,
+  "max_input_rate_hz": 150.0,
+  "steering_types": [
+    "DNa02"
+  ],
+  "input": {
+    "cell_type": "LC10a",
+    "cells_left": 135,
+    "cells_right": 140,
+    "rule": "rate = max rate x local contrast, where local contrast is the standard deviation of picture brightness over the eye columns that feed the cell, weighted by synapse count and divided by 0.5"
+  },
+  "model": {
+    "dt_ms": 0.1,
+    "v_rest_mv": -52.0,
+    "v_threshold_mv": -45.0,
+    "tau_membrane_ms": 20.0,
+    "tau_synapse_ms": 5.0,
+    "refractory_ms": 2.2,
+    "delay_ms": 1.8,
+    "w_synapse_mv": 0.1,
+    "input_weight": 250.0
+  },
+  "graph": {
+    "release": "male-cns-v1.0",
+    "neurons": 165122,
+    "connections": 10402660,
+    "min_synapses": 3,
+    "nt_sign": {
+      "acetylcholine": 1,
+      "gaba": -1,
+      "glutamate": -1,
+      "histamine": -1,
+      "dopamine": 0,
+      "serotonin": 0,
+      "octopamine": 0,
+      "unclear": 1
+    },
+    "source_sha256": {
+      "annotations": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+      "neurotransmitters": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621",
+      "weights": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1"
+    }
+  },
+  "who_did_what": {
+    "fly": "where each input cell looks, how its firing spreads and competes between the two sides, which side the steering neuron fired on, and so the choice",
+    "rig": "the question, the options, drawing them as pictures, the early vision (turning picture contrast into firing of the input cells), the rule that reads a turn as a choice"
+  },
+  "attribution": "Connectome: MaleCNS v1.0, FlyEM Project Team at HHMI Janelia, Cambridge Connectomics Group and Google Research, CC BY 4.0 (Berg et al., Cell 2026). Neuron model: Shiu et al., Nature 2024.",
+  "dro_version": "0.1.0",
+  "runtime_s": 13.1,
+  "repeatability": "Measured on 2026-11-12 with python -m dro.repeat: stay won 20 of 20 runs, 71.1 steering spikes against 30.9 on average. stay is also the picture with more contrast (41.3 Hz of input against 30.2 Hz).",
+  "raster": "2026-11-13.png"
+}
