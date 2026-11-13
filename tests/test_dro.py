@@ -9,7 +9,8 @@ from scipy import sparse
 from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
 from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
 from dro.draft import main as draft_main
-from dro.gate import MARKER, changed_lines, comment, current_head, fetch_patches, look, post_comment, spike_strip
+from dro.gate import MARKER, azure_context, azure_head, changed_lines, comment, current_head, fetch_patches
+from dro.gate import look, post_azure_thread, post_comment, spike_strip
 from dro.gate import main as gate_main
 from dro.gate import make_seed as gate_seed
 from dro.graph import Graph
@@ -598,3 +599,80 @@ def test_gate_cli_on_a_patch_file(tmp_path, monkeypatch, capsys):
     empty.write_text("@@ -1 +1 @@\n context only\n")
     assert gate_main(["--graph", str(compiled), "--patch", str(empty), "--enforce"]) == 0
     assert "nothing to look at" in capsys.readouterr().out
+
+
+AZURE = {
+    "TF_BUILD": "True",
+    "SYSTEM_PULLREQUEST_PULLREQUESTID": "42",
+    "SYSTEM_PULLREQUEST_SOURCECOMMITID": "abc123",
+    "SYSTEM_COLLECTIONURI": "https://dev.azure.com/org/",
+    "SYSTEM_TEAMPROJECT": "My Project",
+    "BUILD_REPOSITORY_ID": "repo-id",
+    "BUILD_REPOSITORY_PROVIDER": "TfsGit",
+    "BUILD_BUILDID": "900",
+}
+
+
+def test_azure_context_is_read_from_the_build_variables():
+    assert azure_context({}) is None
+    assert azure_context({"TF_BUILD": "True"}) is None  # not a pull request build
+    found = azure_context(AZURE)
+    assert found["number"] == 42 and found["head"] == "abc123" and found["azure_repos"]
+    assert found["pull"] == (
+        "https://dev.azure.com/org/My%20Project/_apis/git/repositories/repo-id/pullRequests/42"
+    )
+    assert found["run"] == "https://dev.azure.com/org/My%20Project/_build/results?buildId=900"
+    assert not azure_context({**AZURE, "BUILD_REPOSITORY_PROVIDER": "GitHub"})["azure_repos"]
+
+
+def test_azure_thread_is_created_closed_and_updated_afterwards():
+    pull = azure_context(AZURE)["pull"]
+    fresh = FakeGitHub([("/threads?", {"value": [{"id": 1, "comments": [{"id": 1, "content": "a review"}]}]})])
+    assert post_azure_thread(pull, "T", "### Fly Gate: LGTM", opener=fresh) == "created"
+    created = fresh.requests[-1]
+    assert created.get_method() == "POST" and "api-version=7.0" in created.full_url
+    sent = json.loads(created.data)
+    assert sent["status"] == "closed" and sent["comments"][0]["content"] == "### Fly Gate: LGTM"
+    assert created.get_header("Authorization") == "Bearer T"
+    assert "X-github-api-version" not in created.headers
+
+    earlier = {"value": [{"id": 9, "comments": [{"id": 3, "content": "### Fly Gate: No opinion"}]}]}
+    again = FakeGitHub([("/threads/9/comments/3", {}), ("/threads?", earlier)])
+    assert post_azure_thread(pull, "T", "### Fly Gate: LGTM", opener=again) == "updated"
+    assert again.requests[-1].get_method() == "PATCH"
+    assert json.loads(again.requests[-1].data) == {"content": "### Fly Gate: LGTM"}
+
+
+def test_azure_head_and_plain_comment():
+    pull = azure_context(AZURE)["pull"]
+    server = FakeGitHub([("/pullRequests/42?", {"lastMergeSourceCommit": {"commitId": "abc123"}})])
+    assert azure_head(pull, "T", opener=server) == "abc123"
+    graph = eye_graph()
+    record, results = look(graph, ["return width * height"] * 6, [], seed=3, title="q")
+    text = comment(graph, record, results, "https://example.org/run", plain=True)
+    assert text.startswith("### Fly Gate:") and MARKER not in text and "<sub>" not in text
+    assert "A code review. The fly cannot read" in text
+
+
+def test_gate_cli_in_azure_pipelines_without_a_token(tmp_path, monkeypatch, capsys):
+    for name in ("GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_EVENT_PATH", "SYSTEM_ACCESSTOKEN"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in AZURE.items():
+        monkeypatch.setenv(name, value)
+    graph = eye_graph()
+    compiled = tmp_path / "compiled"
+    compiled.mkdir()
+    sparse.save_npz(compiled / "graph.npz", graph.weights)
+    graph.meta.to_csv(compiled / "neurons.csv", index=False)
+    (compiled / "info.json").write_text(json.dumps(graph.info))
+    patch = tmp_path / "pr.patch"
+    patch.write_text("@@ -0,0 +1,2 @@\n+return width * height\n+return 1\n")
+    out = tmp_path / "out"
+    assert gate_main(["--graph", str(compiled), "--patch", str(patch), "--out", str(out)]) == 0
+    printed = capsys.readouterr()
+    assert "### Fly Gate: LGTM. I did not read it." in printed.out
+    assert MARKER not in printed.out
+    assert "##vso[task.uploadsummary]" in printed.out and (out / "fly-gate.md").exists()
+    assert "comment: not posted" in printed.err
+    assert "buildId=900" in printed.out
+    assert gate_main(["--graph", str(compiled)]) == 2  # Azure needs the diff as a patch

@@ -175,7 +175,7 @@ jobs:
   fly-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: DemonazGH/Dro@main
+      - uses: DemonazGH/Dro@v1
 ```
 
 On every pull request, and on every push to it, the action:
@@ -199,7 +199,7 @@ By default the action never fails a job. With `enforce: "true"` it fails
 when the fly prefers the old lines:
 
 ```yaml
-      - uses: DemonazGH/Dro@main
+      - uses: DemonazGH/Dro@v1
         with:
           enforce: "true"
 ```
@@ -208,7 +208,48 @@ Pull requests from forks get a read-only token, so there the verdict
 appears on the page of the run instead of as a comment. The activity
 picture is attached to the run as an artifact named `fly-gate`.
 
-To ask the fly about any diff from a command line:
+### In Azure Pipelines
+
+`azure-pipelines/fly-gate.yml` holds the same thing as the steps of an Azure
+Pipelines job. It has not yet run in a real Azure DevOps project.
+
+The simplest way to use it: create a pipeline in your project with the
+following file, and add that pipeline to the target branch as a build
+validation policy (Project settings, Repositories, Policies).
+
+```yaml
+trigger: none
+pool:
+  vmImage: ubuntu-latest
+resources:
+  repositories:
+    - repository: dro
+      type: github
+      name: DemonazGH/Dro
+      ref: refs/tags/v1
+      endpoint: github # the name of a GitHub service connection in your project
+steps:
+  - template: azure-pipelines/fly-gate.yml@dro
+```
+
+Without a GitHub service connection, copy the steps of
+`azure-pipelines/fly-gate.yml` into the pipeline instead; they fetch this
+repository themselves.
+
+For a pull request in Azure Repos the verdict is posted as a comment thread
+that is already closed, so it does not count as an unresolved comment, and
+it is updated on later pushes. For that the build service of the project
+needs the permission "Contribute to pull requests" on the repository
+(Project settings, Repositories, Security). Without it, and for
+repositories hosted elsewhere, the verdict appears on the summary page of
+the build. `enforce: true` as a template parameter fails the job when the
+fly prefers the old lines.
+
+The job needs a Linux agent with Python 3.12 and internet access.
+
+### From a command line
+
+To ask the fly about any diff:
 
 ```bash
 git diff main... | python -m dro.gate --patch -
@@ -233,6 +274,7 @@ a few spikes, which the comment then calls a coin toss.
 | `dro/publish.py` | Sends a post to the channels that are switched on |
 | `dro/gate.py` | Fly Gate: shows the fly a pull request and comments on it |
 | `action.yml` | Fly Gate as a GitHub Action for other repositories |
+| `azure-pipelines/fly-gate.yml` | Fly Gate as the steps of an Azure Pipelines job |
 | `questions.json` | The queue of questions, each measured before it was added |
 | `runs/` | One log and one picture per run |
 | `tests/` | Tests on tiny hand-made networks (`python -m pytest`) |

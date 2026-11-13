@@ -1,0 +1,79 @@
+# Fly Gate for Azure Pipelines: the fly looks at a pull request.
+#
+# These are the steps of one job. Either copy them into a pipeline of your
+# own, or refer to this file as a template (see README.md, "Fly Gate"). Add
+# the pipeline to the target branch as a build validation policy, so that it
+# runs on pull requests.
+#
+# The job needs a Linux agent with internet access, for example the
+# Microsoft-hosted image ubuntu-latest. The first run downloads the wiring
+# diagram (about 1.1 GB); later runs restore it from the pipeline cache.
+#
+# To post its verdict on a pull request in Azure Repos, the build service of
+# the project needs the permission "Contribute to pull requests" on the
+# repository (Project settings, Repositories, Security). Without it the
+# verdict still appears on the summary page of the build.
+
+parameters:
+  - name: enforce # fail the job when the fly prefers the old lines
+    type: boolean
+    default: false
+  - name: ref # branch or tag of DemonazGH/Dro to run
+    type: string
+    default: v1
+
+steps:
+  # A pull request build checks out the merge of the pull request into its
+  # target. Two commits deep is enough to compare that merge with the target.
+  - checkout: self
+    fetchDepth: 2
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+    displayName: Use Python 3.12
+
+  - bash: |
+      set -euo pipefail
+      git clone --quiet --depth 1 --branch "${{ parameters.ref }}" https://github.com/DemonazGH/Dro "$AGENT_TEMPDIRECTORY/dro"
+      pip install --quiet -r "$AGENT_TEMPDIRECTORY/dro/requirements.txt"
+      builder=`sha256sum "$AGENT_TEMPDIRECTORY/dro/dro/graph.py" | cut -c1-16`
+      echo "##vso[task.setvariable variable=droBuilder]$builder"
+    displayName: Fetch Fly Gate
+
+  - task: Cache@2
+    inputs:
+      key: '"dro-graph-male-cns-v1.0" | "$(droBuilder)"'
+      path: $(Pipeline.Workspace)/dro-graph
+      cacheHitVar: droGraphRestored
+    displayName: Restore the compiled wiring diagram
+
+  - bash: |
+      set -euo pipefail
+      export PYTHONPATH="$AGENT_TEMPDIRECTORY/dro"
+      python -m dro.graph --raw "$AGENT_TEMPDIRECTORY/dro-raw" --out "$PIPELINE_WORKSPACE/dro-graph"
+      rm -rf "$AGENT_TEMPDIRECTORY/dro-raw"
+    condition: and(succeeded(), ne(variables.droGraphRestored, 'true'))
+    displayName: Build the wiring diagram (first run only, downloads about 1.1 GB)
+
+  - bash: |
+      set -euo pipefail
+      if ! git rev-parse --quiet --verify "HEAD^2" > /dev/null; then
+        echo "This build did not check out a pull request merge, so there is nothing to compare."
+        echo "Run this pipeline as a build validation policy on pull requests."
+        exit 1
+      fi
+      git diff "HEAD^1" HEAD > "$AGENT_TEMPDIRECTORY/fly-gate.patch"
+      flags=""
+      if [ "${{ parameters.enforce }}" = "True" ]; then flags="--enforce"; fi
+      export PYTHONPATH="$AGENT_TEMPDIRECTORY/dro"
+      python -m dro.gate --patch "$AGENT_TEMPDIRECTORY/fly-gate.patch" \
+        --graph "$PIPELINE_WORKSPACE/dro-graph" --out "$BUILD_ARTIFACTSTAGINGDIRECTORY/fly-gate" $flags
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    displayName: Show the pull request to the fly
+
+  - publish: $(Build.ArtifactStagingDirectory)/fly-gate
+    artifact: fly-gate
+    condition: always()
+    displayName: Keep the activity picture

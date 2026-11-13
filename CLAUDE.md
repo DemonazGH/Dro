@@ -16,7 +16,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Forty-three tests pass (`python -m pytest -q`).
+- Forty-seven tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -57,7 +57,14 @@ the model, and `docs/ROADMAP.md` for what to do next.
   request adds against the lines it removes and comments with the verdict.
   It runs on pull requests to this repository through
   `.github/workflows/fly-gate.yml` and never blocks a merge. The comment
-  always says it is not a code review.
+  always says it is not a code review. Its first real run was on
+  DemonazGH/Dro#1. The Azure Pipelines version
+  (`azure-pipelines/fly-gate.yml`, the Azure branch of `dro/gate.py`) has
+  been tested only with a stand-in for the Azure DevOps API and has never
+  run in a real project.
+- Releases are tagged `v1.0.0` and so on, with `v1` for other repositories
+  to pin. Both the GitHub Action and the Azure template run this
+  repository's code at that tag.
 - `dro/publish.py` sends the post to Telegram when the secrets
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
@@ -112,11 +119,15 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
 - `dro/publish.py`: sends a post to Telegram (`send_telegram`). Standard
   library only.
 - `dro/gate.py`: Fly Gate (`changed_lines`, `look`, `comment`,
-  `post_comment`). Talks to the GitHub API with the standard library.
+  `post_comment` for GitHub, `azure_context` and `post_azure_thread` for
+  Azure DevOps). Talks to both APIs with the standard library.
 - `action.yml`: Fly Gate as a composite GitHub Action. Other repositories
-  use it as `DemonazGH/Dro@main`, so `main` must always work: the action
-  installs `requirements.txt` and runs `dro.graph` and `dro.gate` from the
-  checked-out action.
+  use it as `DemonazGH/Dro@v1`: the action installs `requirements.txt` and
+  runs `dro.graph` and `dro.gate` from the checked-out action.
+- `azure-pipelines/fly-gate.yml`: the same as steps of an Azure Pipelines
+  job. It clones this repository at the tag given by its `ref` parameter,
+  cuts the diff from the merge commit the build checked out and passes it
+  to `dro.gate --patch`.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
   (measure a pair and queue it), `publish.yml` (send the newest post again
   after a failed delivery), `fly-gate.yml` (Fly Gate on this repository's

@@ -93,9 +93,11 @@ came from an error and must not be presented as the fly's.
 - [x] See it run on a real pull request: DemonazGH/Dro#1, where the fly
       asked for changes to its own gate. 49 s, graph restored from the
       cache.
-- [ ] Tag a release so other repositories can pin a version.
-- [ ] Same idea for Azure DevOps: first a pipeline template, then an
-      extension.
+- [x] Tag a release so other repositories can pin a version (`v1`).
+- [x] Same idea for Azure DevOps as a pipeline template
+      (`azure-pipelines/fly-gate.yml`).
+- [ ] See the Azure template run in a real Azure DevOps project.
+- [ ] Package it as an Azure DevOps extension for the Marketplace.
 
 ## 5. Products and formats
 
