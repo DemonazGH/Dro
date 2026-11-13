@@ -761,9 +761,16 @@ repository's history, seeds 10 to 100.
 - In the `dro/decide.py` diff the fly went against the contrast (the old
   lines had slightly more) in 8 of 10 seeds.
 
-So Fly Gate mostly answers "does this pull request add much more than it
-removes, in its first lines". The comment says that the rig drew the first
-lines and that contrast usually decides.
+First run on a real pull request (DemonazGH/Dro#1, the one that added Fly
+Gate, 521 lines added and 9 removed): the old lines won, 28 steering spikes
+against 4. Nine removed lines are enough to fill the picture, since only
+about eight lines fit, so this was a contest between two full pictures and
+the old one had more contrast.
+
+So the verdict does not follow the size of a change. It is clear only when
+one side has fewer than about eight lines; otherwise it compares the
+texture of the first eight lines on each side. The comment says that the
+rig drew the first lines and that contrast usually decides.
 
 ## Open questions and ideas
 

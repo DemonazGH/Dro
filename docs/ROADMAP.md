@@ -90,7 +90,9 @@ came from an error and must not be presented as the fly's.
       (`action.yml`, `python -m dro.gate`). The comment carries the steering
       spikes as text; the picture is attached to the run, because a comment
       cannot embed an uploaded file.
-- [ ] See it run on a real pull request.
+- [x] See it run on a real pull request: DemonazGH/Dro#1, where the fly
+      asked for changes to its own gate. 49 s, graph restored from the
+      cache.
 - [ ] Tag a release so other repositories can pin a version.
 - [ ] Same idea for Azure DevOps: first a pipeline template, then an
       extension.

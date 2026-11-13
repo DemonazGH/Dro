@@ -9,7 +9,7 @@ from scipy import sparse
 from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
 from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
 from dro.draft import main as draft_main
-from dro.gate import MARKER, changed_lines, comment, fetch_patches, look, post_comment, spike_strip
+from dro.gate import MARKER, changed_lines, comment, current_head, fetch_patches, look, post_comment, spike_strip
 from dro.gate import main as gate_main
 from dro.gate import make_seed as gate_seed
 from dro.graph import Graph
@@ -482,6 +482,17 @@ def test_changed_lines_splits_a_patch_and_skips_headers_and_blank_lines():
     assert removed == ["    return width + height", "old"]
 
 
+def test_changed_lines_keeps_code_that_starts_with_plus_plus_or_minus_minus():
+    patch = "@@ -1,2 +1,2 @@\n---counter;\n+++counter;\n context\n"
+    assert changed_lines([patch]) == (["++counter;"], ["--counter;"])
+    two_files = (
+        "diff --git a/a.c b/a.c\n--- a/a.c\n+++ b/a.c\n@@ -1 +1 @@\n-x\n+y\n"
+        "\\ No newline at end of file\n"
+        "diff --git a/b.c b/b.c\n--- a/b.c\n+++ b/b.c\n@@ -0,0 +1 @@\n+z\n"
+    )
+    assert changed_lines([two_files]) == (["y", "z"], ["x"])
+
+
 def test_gate_seed_is_fixed_by_the_commit():
     assert gate_seed("o/r", 7, "abc") == gate_seed("o/r", 7, "abc")
     assert gate_seed("o/r", 7, "abc") != gate_seed("o/r", 7, "abd")
@@ -543,6 +554,20 @@ def test_gate_comment_is_created_once_and_updated_afterwards():
     assert again.requests[-1].get_method() == "PATCH"
     assert again.requests[-1].full_url.endswith("/issues/comments/5")
     assert again.requests[-1].get_header("Authorization") == "Bearer T"
+
+
+def test_gate_finds_its_comment_on_a_later_page():
+    crowd = [{"id": i, "body": "chatter"} for i in range(100)]
+    github = FakeGitHub([("/issues/comments/777", {}),
+                         ("&page=2", [{"id": 777, "body": MARKER + " old"}]),
+                         ("&page=1", crowd)])
+    assert post_comment("https://api", "o/r", 7, "T", MARKER + " new", opener=github) == "updated"
+    assert [request.get_method() for request in github.requests] == ["GET", "GET", "PATCH"]
+
+
+def test_gate_asks_for_the_current_head_of_the_pull_request():
+    github = FakeGitHub([("/pulls/7", {"head": {"sha": "abc"}})])
+    assert current_head("https://api", "o/r", 7, "T", opener=github) == "abc"
 
 
 def test_gate_reads_all_pages_of_changed_files():

@@ -28,6 +28,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -51,17 +52,39 @@ HEADINGS = {
 HOME = "https://github.com/DemonazGH/Dro"
 
 
+HUNK = re.compile(r"^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@")
+
+
 def changed_lines(patches: list[str]) -> tuple[list[str], list[str]]:
-    """Added and removed lines of unified diffs, without the +/- markers."""
+    """Added and removed lines of unified diffs, without the +/- markers.
+
+    Lines are read only inside hunks, and each hunk is as long as its header
+    says. So a file header such as ``+++ b/file`` is never taken for a
+    change, and a changed line that itself starts with ``++`` or ``--`` is.
+    Blank lines are left out: they draw nothing.
+    """
     added, removed = [], []
     for patch in patches:
+        old_left = new_left = 0
         for line in patch.splitlines():
-            if line.startswith(("+++", "---")):
+            header = HUNK.match(line)
+            if header:
+                old_left = int(header.group(1) or 1)
+                new_left = int(header.group(2) or 1)
+            elif line.startswith("\\"):  # "\ No newline at end of file"
                 continue
-            if line.startswith("+") and line[1:].strip():
-                added.append(line[1:])
-            elif line.startswith("-") and line[1:].strip():
-                removed.append(line[1:])
+            elif old_left or new_left:
+                if line.startswith("+"):
+                    new_left -= 1
+                    if line[1:].strip():
+                        added.append(line[1:])
+                elif line.startswith("-"):
+                    old_left -= 1
+                    if line[1:].strip():
+                        removed.append(line[1:])
+                else:  # a context line counts on both sides
+                    old_left -= 1
+                    new_left -= 1
     return added, removed
 
 
@@ -201,15 +224,30 @@ def fetch_patches(api: str, repository: str, number: int, token: str, opener=url
     return patches
 
 
+def current_head(api: str, repository: str, number: int, token: str, opener=urllib.request.urlopen) -> str:
+    """The head commit the pull request has right now."""
+    return _api(f"{api}/repos/{repository}/pulls/{number}", token, opener)["head"]["sha"]
+
+
 def post_comment(
     api: str, repository: str, number: int, token: str, body: str, opener=urllib.request.urlopen
 ) -> str:
     """Create the Fly Gate comment, or update the one from an earlier push."""
-    comments = _api(f"{api}/repos/{repository}/issues/{number}/comments?per_page=100", token, opener)
-    for existing in comments:
-        if MARKER in (existing.get("body") or ""):
-            _api(f"{api}/repos/{repository}/issues/comments/{existing['id']}", token, opener, "PATCH", {"body": body})
-            return "updated"
+    page = 1
+    while True:
+        comments = _api(
+            f"{api}/repos/{repository}/issues/{number}/comments?per_page=100&page={page}", token, opener
+        )
+        for existing in comments:
+            if MARKER in (existing.get("body") or ""):
+                _api(
+                    f"{api}/repos/{repository}/issues/comments/{existing['id']}",
+                    token, opener, "PATCH", {"body": body},
+                )
+                return "updated"
+        if len(comments) < 100:
+            break
+        page += 1
     _api(f"{api}/repos/{repository}/issues/{number}/comments", token, opener, "POST", {"body": body})
     return "created"
 
@@ -237,6 +275,12 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         number, head = pull["number"], pull["head"]["sha"]
         patches = fetch_patches(api, repository, number, token)
+        # The list of files always describes the newest commit. If the pull
+        # request has moved on since this job was started, the files no longer
+        # belong to the commit this job, and its seed, stand for.
+        if current_head(api, repository, number, token) != head:
+            print(f"commit {head[:7]} is no longer the head of the pull request; nothing done", file=sys.stderr)
+            return 0
         if environment.get("GITHUB_RUN_ID"):
             server = environment.get("GITHUB_SERVER_URL", "https://github.com")
             picture_url = f"{server}/{repository}/actions/runs/{environment['GITHUB_RUN_ID']}"
