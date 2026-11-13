@@ -106,7 +106,7 @@ Still two regimes. At 0.20 mV and 150 Hz the runaway is milder, 448
 descending neurons are active and steering fires on both sides. This is the
 closest point to a usable regime so far.
 
-## Setup for experiments 6 to 22 (2026-11-12)
+## Setup for experiments 6 to 23 (2026-11-12)
 
 - Graph: as above. A second graph with 5 or more synapses per connection
   (6,185,843 connections) was built for comparison.
@@ -735,6 +735,42 @@ the winner is the picture with more contrast. Seven of the 42 are decided
 by fewer than five steering spikes in total.
 
 `questions.json` holds the repeating pairs of both experiments.
+
+## Experiment 23: Fly Gate on four real diffs, ten seeds each
+
+`dro.gate.look`: the added lines of a diff as one picture, the removed
+lines as the other (`render_lines`: font size 9, drawn from the top left,
+cut off at the edges), then the usual two trials. Diffs taken from this
+repository's history, seeds 10 to 100.
+
+| Diff | Lines added / removed | Input new / old, Hz | New won | Old won | Undecided | Steering spikes new / old, range |
+| --- | --- | --- | --- | --- | --- | --- |
+| `dro/repeat.py` in d0aa092 | 54 / 0 | 44.2 / 0.0 | 10 | 0 | 0 | 128 to 142 / 0 |
+| `dro/publish.py` in 2b0623b | 19 / 3 | 43.9 / 22.4 | 10 | 0 | 0 | 61 to 71 / 0 |
+| `dro/decide.py` in d8c58b2 | 93 / 25 | 41.2 / 44.0 | 8 | 2 | 0 | 3 to 11 / 4 to 7 |
+| `docs/CONCEPT.md` in a5c4a16 | 32 / 66 | 43.0 / 44.6 | 1 | 8 | 1 | 1 to 12 / 7 to 13 |
+
+- When one side has few lines or none, its picture is nearly empty, the
+  other eye drives the brain alone, and the verdict is the same in every
+  seed with a wide margin.
+- When both sides fill their picture, the two pictures have almost the same
+  contrast, the sides suppress each other, and the verdict rests on a few
+  spikes. It leans the same way in 8 of 10 seeds in both such diffs, but
+  the margin is often below five spikes; the comment then says "treat it as
+  a coin toss".
+- In the `dro/decide.py` diff the fly went against the contrast (the old
+  lines had slightly more) in 8 of 10 seeds.
+
+First run on a real pull request (DemonazGH/Dro#1, the one that added Fly
+Gate, 521 lines added and 9 removed): the old lines won, 28 steering spikes
+against 4. Nine removed lines are enough to fill the picture, since only
+about eight lines fit, so this was a contest between two full pictures and
+the old one had more contrast.
+
+So the verdict does not follow the size of a change. It is clear only when
+one side has fewer than about eight lines; otherwise it compares the
+texture of the first eight lines on each side. The comment says that the
+rig drew the first lines and that contrast usually decides.
 
 ## Open questions and ideas
 

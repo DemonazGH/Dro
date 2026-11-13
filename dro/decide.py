@@ -118,9 +118,14 @@ def decide(
     max_rate_hz: float = 150.0,
     params: Params = Params(),
     base_dir: Path = Path("."),
+    pictures: dict | None = None,
 ) -> tuple[dict, list]:
-    """Run both trials. Returns the log record and the raw trial results."""
-    pictures = {"a": render(option_a, base_dir), "b": render(option_b, base_dir)}
+    """Run both trials. Returns the log record and the raw trial results.
+
+    ``pictures`` may supply ready-made pictures for "a" and "b"; otherwise
+    the options are drawn as text or loaded as image files.
+    """
+    pictures = pictures or {"a": render(option_a, base_dir), "b": render(option_b, base_dir)}
     steer = {side: _side_indices(graph, STEERING_TYPES, side) for side in ("L", "R")}
     reward, punish = _prefix_indices(graph, REWARD_PREFIX), _prefix_indices(graph, PUNISH_PREFIX)
     seconds = duration_ms / 1000.0

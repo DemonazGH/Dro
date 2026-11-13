@@ -78,6 +78,25 @@ def render(option: str, base_dir: Path = Path(".")) -> np.ndarray:
     return np.asarray(image, dtype=np.float32) / 255.0
 
 
+def render_lines(lines: list[str], font_size: int = 9) -> np.ndarray:
+    """Draw lines of text, such as code, from the top left of a bright page.
+
+    Nothing is scaled to fit: lines that are too long and lines beyond the
+    bottom edge are cut off, so only the first few lines are seen (about
+    eight lines of twenty characters). No lines gives an empty page.
+    """
+    image = Image.new("L", (CANVAS, CANVAS), 255)
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.load_default(size=font_size)
+    top = 2
+    for line in lines:
+        if top >= CANVAS:
+            break
+        draw.text((2, top), line.expandtabs(2).rstrip(), fill=0, font=font)
+        top += font_size + 2
+    return np.asarray(image, dtype=np.float32) / 255.0
+
+
 @dataclass
 class View:
     """Where the input cells of one side look."""

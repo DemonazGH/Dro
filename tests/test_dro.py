@@ -9,6 +9,9 @@ from scipy import sparse
 from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
 from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
 from dro.draft import main as draft_main
+from dro.gate import MARKER, changed_lines, comment, current_head, fetch_patches, look, post_comment, spike_strip
+from dro.gate import main as gate_main
+from dro.gate import make_seed as gate_seed
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
 from dro.publish import main as publish_main
@@ -17,7 +20,7 @@ from dro.repeat import add_to_queue, note, repeats, summary
 from dro.repeat import run as repeat_run
 from dro.sanity import sugar_neurons, verdict
 from dro.sim import simulate
-from dro.stimulus import CANVAS, local_contrast, render, views
+from dro.stimulus import CANVAS, local_contrast, render, render_lines, views
 
 
 def chain(weight: float) -> sparse.csr_matrix:
@@ -461,3 +464,137 @@ def test_activity_picture_is_written_for_decided_and_undecided_runs(tmp_path):
     save_raster(graph, results, record, tmp_path / "undecided.png")
     for name in ("decided.png", "undecided.png"):
         assert (tmp_path / name).stat().st_size > 10_000
+
+
+PATCH = """@@ -1,4 +1,5 @@
+ def area(width, height):
+-    return width + height
++    # The area of a rectangle.
++    return width * height
+ 
++
+"""
+
+
+def test_changed_lines_splits_a_patch_and_skips_headers_and_blank_lines():
+    added, removed = changed_lines([PATCH, "--- a/x\n+++ b/x\n@@ -1 +1 @@\n-old\n+new\n"])
+    assert added == ["    # The area of a rectangle.", "    return width * height", "new"]
+    assert removed == ["    return width + height", "old"]
+
+
+def test_changed_lines_keeps_code_that_starts_with_plus_plus_or_minus_minus():
+    patch = "@@ -1,2 +1,2 @@\n---counter;\n+++counter;\n context\n"
+    assert changed_lines([patch]) == (["++counter;"], ["--counter;"])
+    two_files = (
+        "diff --git a/a.c b/a.c\n--- a/a.c\n+++ b/a.c\n@@ -1 +1 @@\n-x\n+y\n"
+        "\\ No newline at end of file\n"
+        "diff --git a/b.c b/b.c\n--- a/b.c\n+++ b/b.c\n@@ -0,0 +1 @@\n+z\n"
+    )
+    assert changed_lines([two_files]) == (["y", "z"], ["x"])
+
+
+def test_gate_seed_is_fixed_by_the_commit():
+    assert gate_seed("o/r", 7, "abc") == gate_seed("o/r", 7, "abc")
+    assert gate_seed("o/r", 7, "abc") != gate_seed("o/r", 7, "abd")
+    assert gate_seed("o/r", 7, "abc") != gate_seed("o/r", 8, "abc")
+
+
+def test_code_is_drawn_from_the_top_left_and_cut_off():
+    page = render_lines(["x = 1"] * 40)
+    assert page.shape == (CANVAS, CANVAS) and page.min() < 0.5
+    assert page[:, CANVAS // 2 :].min() == 1.0  # short lines leave the right half empty
+    assert render_lines([]).min() == 1.0
+
+
+def test_spike_strip_marks_when_the_neuron_fired():
+    strip = spike_strip(np.array([0.0, 500.0, 999.0]), 1000.0, width=10)
+    assert strip == "|····|···|"
+
+
+def test_gate_comment_says_what_it_is_and_what_it_is_not():
+    graph = eye_graph()
+    record, results = look(graph, ["return width * height"] * 6, [], seed=3, title="q")
+    assert record["choice"] == "a"  # only the new lines were there to turn to
+    text = comment(graph, record, results, "https://example.org/run")
+    assert text.startswith(MARKER + "\n### Fly Gate: LGTM. I did not read it.")
+    assert "A code review. The fly cannot read" in text
+    assert "not a fly and not alive" in text
+    assert "left eye: the new lines, right eye: the old lines" in text
+    assert "[activity picture](https://example.org/run)" in text
+    assert "adds (6 in all)" in text and "removes (0 in all)" in text
+
+
+class FakeGitHub:
+    """Stands in for urllib.request.urlopen and answers by address."""
+
+    def __init__(self, answers):
+        self.answers, self.requests = answers, []
+
+    def __call__(self, request, timeout):
+        self.requests.append(request)
+        self.current = next(body for part, body in self.answers if part in request.full_url)
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *unused):
+        return False
+
+    def read(self):
+        return json.dumps(self.current).encode()
+
+
+def test_gate_comment_is_created_once_and_updated_afterwards():
+    fresh = FakeGitHub([("/issues/7/comments", [{"id": 1, "body": "someone else"}])])
+    assert post_comment("https://api", "o/r", 7, "T", MARKER + " new", opener=fresh) == "created"
+    assert fresh.requests[-1].get_method() == "POST"
+    again = FakeGitHub([("/issues/comments/5", {}), ("/issues/7/comments", [{"id": 5, "body": MARKER + " old"}])])
+    assert post_comment("https://api", "o/r", 7, "T", MARKER + " new", opener=again) == "updated"
+    assert again.requests[-1].get_method() == "PATCH"
+    assert again.requests[-1].full_url.endswith("/issues/comments/5")
+    assert again.requests[-1].get_header("Authorization") == "Bearer T"
+
+
+def test_gate_finds_its_comment_on_a_later_page():
+    crowd = [{"id": i, "body": "chatter"} for i in range(100)]
+    github = FakeGitHub([("/issues/comments/777", {}),
+                         ("&page=2", [{"id": 777, "body": MARKER + " old"}]),
+                         ("&page=1", crowd)])
+    assert post_comment("https://api", "o/r", 7, "T", MARKER + " new", opener=github) == "updated"
+    assert [request.get_method() for request in github.requests] == ["GET", "GET", "PATCH"]
+
+
+def test_gate_asks_for_the_current_head_of_the_pull_request():
+    github = FakeGitHub([("/pulls/7", {"head": {"sha": "abc"}})])
+    assert current_head("https://api", "o/r", 7, "T", opener=github) == "abc"
+
+
+def test_gate_reads_all_pages_of_changed_files():
+    first = [{"filename": f"f{i}", "patch": "+x"} for i in range(99)] + [{"filename": "binary"}]
+    github = FakeGitHub([("&page=2", [{"filename": "last", "patch": "-y"}]), ("&page=1", first)])
+    patches = fetch_patches("https://api", "o/r", 7, "T", opener=github)
+    assert len(patches) == 100 and patches[-1] == "-y"
+
+
+def test_gate_cli_on_a_patch_file(tmp_path, monkeypatch, capsys):
+    for name in ("GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_EVENT_PATH"):
+        monkeypatch.delenv(name, raising=False)
+    graph = eye_graph()
+    compiled = tmp_path / "compiled"
+    compiled.mkdir()
+    sparse.save_npz(compiled / "graph.npz", graph.weights)
+    graph.meta.to_csv(compiled / "neurons.csv", index=False)
+    (compiled / "info.json").write_text(json.dumps(graph.info))
+    removal = tmp_path / "removal.patch"
+    removal.write_text("@@ -1,3 +0,0 @@\n-return width + height\n-return width + height\n-return 1\n")
+    arguments = ["--graph", str(compiled), "--patch", str(removal), "--out", str(tmp_path / "out")]
+    assert gate_main(arguments) == 0
+    assert "Changes requested. I did not read it." in capsys.readouterr().out
+    assert (tmp_path / "out" / "fly-gate.png").exists()
+    assert json.loads((tmp_path / "out" / "fly-gate.json").read_text())["choice"] == "b"
+    assert gate_main(arguments + ["--enforce"]) == 1
+    empty = tmp_path / "empty.patch"
+    empty.write_text("@@ -1 +1 @@\n context only\n")
+    assert gate_main(["--graph", str(compiled), "--patch", str(empty), "--enforce"]) == 0
+    assert "nothing to look at" in capsys.readouterr().out
