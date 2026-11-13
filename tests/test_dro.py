@@ -4,6 +4,7 @@ import json
 
 import numpy as np
 import pandas as pd
+from PIL import Image
 from scipy import sparse
 
 from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
@@ -15,6 +16,9 @@ from dro.gate import main as gate_main
 from dro.gate import make_seed as gate_seed
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
+from dro import portrait_bot
+from dro.portrait import load_square
+from dro.portrait import make as make_portrait
 from dro.publish import main as publish_main
 from dro.publish import multipart, send_telegram
 from dro.repeat import add_to_queue, note, repeats, summary
@@ -676,3 +680,95 @@ def test_gate_cli_in_azure_pipelines_without_a_token(tmp_path, monkeypatch, caps
     assert "comment: not posted" in printed.err
     assert "buildId=900" in printed.out
     assert gate_main(["--graph", str(compiled)]) == 2  # Azure needs the diff as a patch
+
+
+def test_portrait_crops_the_photo_and_writes_a_poster(tmp_path):
+    photo = tmp_path / "photo.png"
+    wide = np.zeros((60, 120), dtype=np.uint8)
+    wide[:, 30:60] = 255  # left half of the middle square is bright
+    Image.fromarray(wide).save(photo)
+    square = load_square(photo)
+    assert square.shape == (CANVAS, CANVAS)
+    assert square[:, : CANVAS // 2].mean() > 0.9 and square[:, CANVAS // 2 :].mean() < 0.1
+    numbers = make_portrait(eye_graph(), photo, tmp_path / "portrait.png", "Test")
+    assert (tmp_path / "portrait.png").stat().st_size > 10_000
+    assert numbers["neurons"] == 76 and numbers["fired"] > 0
+    assert make_portrait(eye_graph(), photo, tmp_path / "again.png") == numbers  # same photo, same poster
+
+
+class FakeBot:
+    """Stands in for the Telegram Bot API: answers by method and records the calls."""
+
+    def __init__(self, results):
+        self.results, self.calls = results, []
+
+    def __call__(self, request, timeout):
+        address = request.full_url
+        if "/file/bot" in address:
+            self.calls.append(("download", address.rsplit("/", 1)[-1]))
+            self.body = b"photo bytes"
+            return self
+        method = address.rsplit("/", 1)[-1]
+        sent = request.data
+        try:
+            sent = json.loads(sent)
+        except ValueError:
+            pass  # a photo upload is not JSON
+        self.calls.append((method, sent))
+        self.body = json.dumps({"ok": True, "result": self.results.get(method)}).encode()
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *unused):
+        return False
+
+    def read(self):
+        return self.body
+
+
+def private(update_id, sender, **content):
+    return {"update_id": update_id,
+            "message": {"chat": {"id": sender, "type": "private"}, "from": {"id": sender}, **content}}
+
+
+def test_portrait_bot_serves_administrators_only():
+    bot = FakeBot({
+        "getUpdates": [
+            private(10, 1, photo=[{"file_id": "small"}, {"file_id": "large"}], caption="  Grace  "),
+            private(11, 2, photo=[{"file_id": "stranger"}]),
+            private(12, 2, text="hello again"),
+            private(13, 1, text="hello"),
+            {"update_id": 14, "message": {"chat": {"id": -5, "type": "channel"}}},
+        ],
+        "getChatAdministrators": [{"user": {"id": 1}}, {"user": {"id": 99, "is_bot": True}}],
+        "getFile": {"file_path": "photos/file_7.jpg"},
+    })
+    made = []
+
+    def make(photo, out, name):
+        made.append((photo.read_bytes(), name))
+        out.write_bytes(b"poster")
+        return {"neurons": 165122, "fired": 477}
+
+    counts = portrait_bot.serve("TOKEN", "@channel", None, opener=bot, make=make)
+    assert counts == {"portraits": 1, "refused": 2, "other": 1, "failed": 0}
+    assert made == [(b"photo bytes", "Grace")]
+    methods = [name for name, _ in bot.calls]
+    assert methods == ["getUpdates", "getChatAdministrators", "getFile", "download", "sendPhoto",
+                       "sendMessage", "sendMessage", "getUpdates"]
+    assert ("getFile", {"file_id": "large"}) in bot.calls  # the largest size, and never the stranger's
+    assert bot.calls[5][1] == {"chat_id": 2, "text": portrait_bot.NOT_OPEN}  # told once, not twice
+    assert bot.calls[6][1] == {"chat_id": 1, "text": portrait_bot.HOW_TO}
+    assert bot.calls[-1][1] == {"offset": 15, "timeout": 0}
+    assert b"477 of 165,122 simulated neurons fired" in bot.calls[4][1]
+
+
+def test_portrait_bot_does_nothing_without_messages_or_credentials(monkeypatch, capsys):
+    quiet = FakeBot({"getUpdates": []})
+    assert portrait_bot.serve("TOKEN", "@channel", None, opener=quiet)["portraits"] == 0
+    assert [name for name, _ in quiet.calls] == ["getUpdates"]
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    assert portrait_bot.main(["--peek"]) == 0
+    assert capsys.readouterr().out.strip() == "waiting=0"

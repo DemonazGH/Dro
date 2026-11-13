@@ -1,0 +1,59 @@
+name: Portraits
+
+# Answers photos sent to the Telegram bot with a "portrait through a fly's
+# eyes". Only administrators of the channel are served. There is no server:
+# this job looks into the bot's inbox once an hour, or when started by hand.
+
+on:
+  schedule:
+    - cron: "47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dro-portraits
+  cancel-in-progress: false
+
+jobs:
+  portraits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Needs nothing but Python, so an empty inbox costs a few seconds.
+      - name: Look into the inbox
+        id: inbox
+        run: python -m dro.portrait_bot --peek >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        if: steps.inbox.outputs.waiting != '0'
+        run: pip install -r requirements.txt
+
+      - name: Restore the compiled graph
+        if: steps.inbox.outputs.waiting != '0'
+        id: graph
+        uses: actions/cache@v4
+        with:
+          path: data/compiled
+          key: graph-male-cns-v1.0-${{ hashFiles('dro/graph.py') }}
+
+      - name: Build the graph (only if it is not cached, downloads about 1.1 GB)
+        if: steps.inbox.outputs.waiting != '0' && steps.graph.outputs.cache-hit != 'true'
+        run: |
+          python -m dro.graph --raw data/raw --out data/compiled
+          rm -rf data/raw
+
+      - name: Answer the photos
+        if: steps.inbox.outputs.waiting != '0'
+        run: python -m dro.portrait_bot --graph data/compiled

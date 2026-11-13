@@ -16,7 +16,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Forty-seven tests pass (`python -m pytest -q`).
+- Fifty tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -62,6 +62,11 @@ the model, and `docs/ROADMAP.md` for what to do next.
   (`azure-pipelines/fly-gate.yml`, the Azure branch of `dro/gate.py`) has
   been tested only with a stand-in for the Azure DevOps API and has never
   run in a real project.
+- **Portraits** (`dro/portrait.py`, `dro/portrait_bot.py`): a photo sent
+  to the Telegram bot is answered with a poster of how the brain reacted to
+  it. The "Portraits" workflow looks into the bot's inbox once an hour.
+  Only administrators of the channel are served. The bot has been tested
+  only with a stand-in for the Telegram API.
 - `v1` is the release branch that other repositories pin
   (`DemonazGH/Dro@v1`). Both the GitHub Action and the Azure template run
   this repository's code at that branch. Move it forward with
@@ -90,6 +95,8 @@ python -m dro.repeat --a yes --b no --question "Yes or no?" --add-to questions.j
 python -m dro.draft                                   # newest run log to drafts/
 python -m dro.draft --llm                             # same, worded by a language model
 python -m dro.publish runs/2026-11-13.md              # send a post; needs the Telegram variables
+python -m dro.portrait photo.jpg --out portrait.png   # portrait through a fly's eyes
+python -m dro.portrait_bot --peek                     # messages waiting for the bot
 git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
 ```
 
@@ -119,8 +126,15 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   `acceptable`, `footer`, `editor_notes`, `post_text`). `anthropic` is
   imported only for `--llm` and is not in `requirements.txt`; the daily job
   installs it only when the key exists.
-- `dro/publish.py`: sends a post to Telegram (`send_telegram`). Standard
-  library only.
+- `dro/telegram.py`: the calls to the Telegram Bot API. Standard library
+  only and no imports from the project, so it works before the
+  simulation's dependencies are installed.
+- `dro/publish.py`: sends a post to Telegram (`send_telegram`).
+- `dro/portrait.py`: photo to poster (`load_square`, `look`, `save_poster`,
+  `make`). The seed comes from the photo's bytes.
+- `dro/portrait_bot.py`: answers photos in the bot's inbox (`waiting`,
+  `administrators`, `serve`). It imports the simulation only when there is
+  a photo to look at, so `--peek` runs on bare Python.
 - `dro/gate.py`: Fly Gate (`changed_lines`, `look`, `comment`,
   `post_comment` for GitHub, `azure_context` and `post_azure_thread` for
   Azure DevOps). Talks to both APIs with the standard library.
@@ -133,8 +147,9 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   to `dro.gate --patch`.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
   (measure a pair and queue it), `publish.yml` (send the newest post again
-  after a failed delivery), `fly-gate.yml` (Fly Gate on this repository's
-  pull requests), `tests.yml`.
+  after a failed delivery), `portraits.yml` (hourly look into the bot's
+  inbox), `fly-gate.yml` (Fly Gate on this repository's pull requests),
+  `tests.yml`.
 
 ## Rules
 
@@ -161,6 +176,10 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   to `questions.json`, and nothing else.
 - **The footer is never optional.** No code path may publish a post without
   the footer built by `dro/draft.py`.
+- **Photos of people are personal data.** The portrait bot serves only
+  administrators of the channel. Do not open it to everyone without the
+  owner's decision and a privacy notice. Never store a photo or a poster in
+  the repository, in an artifact or in a log, and never log who wrote.
 - **No secrets in the repository.** Keys go into GitHub Actions secrets.
 - **Dro gives no financial, medical or legal advice**, not even as a joke
   format. No tokens or coins.

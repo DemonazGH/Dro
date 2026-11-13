@@ -101,5 +101,11 @@ came from an error and must not be presented as the fly's.
 
 ## 5. Products and formats
 
-See `docs/CONCEPT.md`: the "portrait through a fly's eyes" poster, the
+- [x] "Portrait through a fly's eyes": `python -m dro.portrait` and a
+      Telegram bot that answers photos from the channel's administrators.
+- [ ] See the bot answer a real photo.
+- [ ] Decide whether to open portraits to everyone; that needs a privacy
+      notice and a limit on how many are made.
+
+Also in `docs/CONCEPT.md`: the
 "fly is my boss for 30 days" series, the Telegram pet bot.

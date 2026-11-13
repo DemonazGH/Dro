@@ -222,6 +222,31 @@ PICTURE_BANDS = (
 AMBER, ACCENT, PAPER, INK = "#ffb000", "#ffffff", "#0b0b0d", "#c9c9c9"
 
 
+def activity_rows(graph: Graph, cells: np.ndarray) -> tuple[np.ndarray, list, list, int]:
+    """Give each of the given neurons a row in a picture, in bands by role.
+
+    Returns the row of every neuron (-1 if it has none), a label for each
+    band as (name, number of cells, middle row), the rows where bands meet,
+    and the number of rows.
+    """
+    meta = graph.meta
+    kind = meta["type"].fillna("").to_numpy(dtype=str)
+    group = meta["superclass"].fillna("").to_numpy(dtype=str)
+    side = meta["somaSide"].fillna("").to_numpy(dtype=str)
+    row_of = np.full(graph.n, -1, dtype=np.int64)
+    unplaced = cells.copy()
+    labels, edges, rows = [], [0], 0
+    for name, belongs in PICTURE_BANDS:
+        members = np.flatnonzero(unplaced & belongs(kind, group))
+        unplaced[members] = False
+        members = members[np.argsort(side[members], kind="stable")]  # left side below right
+        row_of[members] = rows + np.arange(members.size)
+        rows += members.size
+        labels.append((name, members.size, (edges[-1] + rows) / 2))
+        edges.append(rows)
+    return row_of, labels, edges, rows
+
+
 def save_raster(graph: Graph, results: list, record: dict, path: Path) -> None:
     """Draw which neurons fired when, in both trials.
 
@@ -236,25 +261,13 @@ def save_raster(graph: Graph, results: list, record: dict, path: Path) -> None:
 
     meta = graph.meta
     kind = meta["type"].fillna("").to_numpy(dtype=str)
-    group = meta["superclass"].fillna("").to_numpy(dtype=str)
     side = meta["somaSide"].fillna("").to_numpy(dtype=str)
     fired = np.zeros(graph.n, dtype=bool)
     for result in results:
         fired[result.spike_neurons] = True
     steering = np.isin(kind, STEERING_TYPES)
 
-    # Give every neuron that fired a row; bands stack from the bottom.
-    row_of = np.full(graph.n, -1, dtype=np.int64)
-    unplaced = fired & ~steering
-    labels, edges, rows = [], [0], 0
-    for name, belongs in PICTURE_BANDS:
-        members = np.flatnonzero(unplaced & belongs(kind, group))
-        unplaced[members] = False
-        members = members[np.argsort(side[members], kind="stable")]  # left side below right
-        row_of[members] = rows + np.arange(members.size)
-        rows += members.size
-        labels.append((name, members.size, (edges[-1] + rows) / 2))
-        edges.append(rows)
+    row_of, labels, edges, rows = activity_rows(graph, fired & ~steering)
     rows = max(rows, 1)
     band = max(rows * 0.09, 1.0)  # height of one steering band
     steering_base = {"L": rows + band * 0.5, "R": rows + band * 1.75}

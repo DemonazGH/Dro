@@ -20,59 +20,14 @@ activity picture that belongs to the same run is attached if it exists.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
-import urllib.error
 import urllib.request
-import uuid
 from pathlib import Path
 
 from .decide import log_order
 from .draft import post_text
-
-TELEGRAM_API = "https://api.telegram.org/bot{token}/{method}"
-CAPTION_LIMIT = 1024  # Telegram's limit for the text under a photo
-
-
-def multipart(fields: dict[str, str], file_field: str, file_name: str, content: bytes) -> tuple[bytes, str]:
-    """Encode form fields and one file as multipart/form-data."""
-    boundary = uuid.uuid4().hex
-    parts = []
-    for name, value in fields.items():
-        parts.append(
-            f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
-        )
-    parts.append(
-        (
-            f'--{boundary}\r\nContent-Disposition: form-data; name="{file_field}"; '
-            f'filename="{file_name}"\r\nContent-Type: image/png\r\n\r\n'
-        ).encode()
-        + content
-        + b"\r\n"
-    )
-    parts.append(f"--{boundary}--\r\n".encode())
-    return b"".join(parts), f"multipart/form-data; boundary={boundary}"
-
-
-def _call(token: str, method: str, body: bytes, content_type: str, opener) -> dict:
-    request = urllib.request.Request(
-        TELEGRAM_API.format(token=token, method=method),
-        data=body,
-        headers={"Content-Type": content_type},
-    )
-    try:
-        with opener(request, timeout=60) as response:
-            answer = json.loads(response.read().decode())
-    except urllib.error.HTTPError as error:
-        # The address holds the token, so only Telegram's own explanation is passed on.
-        detail = json.loads(error.read().decode() or "{}").get("description", "no explanation")
-        raise RuntimeError(f"Telegram refused {method}: {error.code}, {detail}") from None
-    except urllib.error.URLError as error:
-        raise RuntimeError(f"Telegram could not be reached: {error.reason}") from None
-    if not answer.get("ok"):
-        raise RuntimeError(f"Telegram refused {method}: {answer.get('description', 'no explanation')}")
-    return answer
+from .telegram import CAPTION_LIMIT, multipart, send_message, send_photo  # noqa: F401 (multipart is re-exported)
 
 
 def send_telegram(
@@ -81,16 +36,12 @@ def send_telegram(
     """Send the post to a Telegram chat. Returns the API methods that were called."""
     called = []
     if photo is not None:
-        fields = {"chat_id": chat}
-        if len(text) <= CAPTION_LIMIT:
-            fields["caption"] = text
-        body, content_type = multipart(fields, "photo", photo.name, photo.read_bytes())
-        _call(token, "sendPhoto", body, content_type, opener)
+        fits = len(text) <= CAPTION_LIMIT
+        send_photo(token, chat, photo.name, photo.read_bytes(), text if fits else None, opener)
         called.append("sendPhoto")
-        if "caption" in fields:
+        if fits:
             return called
-    body = json.dumps({"chat_id": chat, "text": text}).encode()
-    _call(token, "sendMessage", body, "application/json", opener)
+    send_message(token, chat, text, opener)
     called.append("sendMessage")
     return called
 

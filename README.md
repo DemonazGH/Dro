@@ -262,6 +262,34 @@ Fly Gate decides nothing about the code. The fly cannot read; pictures of
 code are dense, the two sides suppress each other, and the margin is often
 a few spikes, which the comment then calls a coin toss.
 
+## Portrait through a fly's eyes
+
+A poster of how the simulated brain reacted to a photo
+([example](docs/sample-portrait/grace.png), made from a public-domain
+photograph of Grace Hopper).
+
+The photo is cropped to a square and shown to both eyes for one second. The
+poster shows what reached the eyes (32 x 32 points of light), what the
+object-detecting cells reported (one dot per LC10a cell, at the spot where
+that cell looks, larger where the picture has more contrast), and every
+neuron that fired, with the two steering neurons on top. The same photo
+always gives the same poster. The fly sees no face, only light and dark,
+and the poster says so.
+
+**By Telegram.** Send the bot a photo in a private chat; a caption becomes
+the name on the poster. Once an hour the "Portraits" workflow looks into
+the bot's inbox and answers. To get the answer sooner, start the workflow
+by hand from the Actions tab. Only administrators of the channel are
+served; anyone else is told that portraits are not open yet, and their
+photo is not fetched. A photo is kept only for the seconds it takes to make
+the poster, and nothing about a message is written to the log.
+
+**From a command line.**
+
+```bash
+python -m dro.portrait photo.jpg --out portrait.png --name "Grace"
+```
+
 ## Layout
 
 | Path | What it holds |
@@ -275,13 +303,16 @@ a few spikes, which the comment then calls a coin toss.
 | `dro/repeat.py` | Runs one pair many times: how often does the same option win? |
 | `dro/draft.py` | Turns a run log into a post with the "who did what" footer |
 | `dro/publish.py` | Sends a post to the channels that are switched on |
+| `dro/portrait.py` | Portrait through a fly's eyes: a photo in, a poster out |
+| `dro/portrait_bot.py` | Answers photos sent to the Telegram bot with portraits |
+| `dro/telegram.py` | The calls to the Telegram Bot API |
 | `dro/gate.py` | Fly Gate: shows the fly a pull request and comments on it |
 | `action.yml` | Fly Gate as a GitHub Action for other repositories |
 | `azure-pipelines/fly-gate.yml` | Fly Gate as the steps of an Azure Pipelines job |
 | `questions.json` | The queue of questions, each measured before it was added |
 | `runs/` | One log and one picture per run |
 | `tests/` | Tests on tiny hand-made networks (`python -m pytest`) |
-| `docs/` | Concept, calibration notes, roadmap, one sample run |
+| `docs/` | Concept, calibration notes, roadmap, a sample run and a sample portrait |
 | `CLAUDE.md` | Project guide for Claude Code |
 
 ## Model
