@@ -103,7 +103,8 @@ came from an error and must not be presented as the fly's.
 
 - [x] "Portrait through a fly's eyes": `python -m dro.portrait` and a
       Telegram bot that answers photos from the channel's administrators.
-- [ ] See the bot answer a real photo.
+- [x] See the bot answer a real photo: done on 2026-11-13, started by hand,
+      about a minute from start to poster.
 - [ ] Decide whether to open portraits to everyone; that needs a privacy
       notice and a limit on how many are made.
 

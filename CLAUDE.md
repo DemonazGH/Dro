@@ -65,8 +65,8 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - **Portraits** (`dro/portrait.py`, `dro/portrait_bot.py`): a photo sent
   to the Telegram bot is answered with a poster of how the brain reacted to
   it. The "Portraits" workflow looks into the bot's inbox once an hour.
-  Only administrators of the channel are served. The bot has been tested
-  only with a stand-in for the Telegram API.
+  Only administrators of the channel are served. It answered its first
+  real photo from the owner on 2026-11-13.
 - `v1` is the release branch that other repositories pin
   (`DemonazGH/Dro@v1`). Both the GitHub Action and the Azure template run
   this repository's code at that branch. Move it forward with
