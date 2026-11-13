@@ -2,11 +2,13 @@ name: Portraits
 
 # Answers photos sent to the Telegram bot with a "portrait through a fly's
 # eyes". Only administrators of the channel are served. There is no server:
-# this job looks into the bot's inbox once an hour, or when started by hand.
+# this job looks into the bot's inbox three times an hour, or when started by
+# hand. GitHub drops many scheduled runs when it is busy, so the real pace is
+# slower and uneven.
 
 on:
   schedule:
-    - cron: "47 * * * *"
+    - cron: "7,27,47 * * * *"
   workflow_dispatch:
 
 permissions:

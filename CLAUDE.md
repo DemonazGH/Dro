@@ -64,7 +64,9 @@ the model, and `docs/ROADMAP.md` for what to do next.
   run in a real project.
 - **Portraits** (`dro/portrait.py`, `dro/portrait_bot.py`): a photo sent
   to the Telegram bot is answered with a poster of how the brain reacted to
-  it. The "Portraits" workflow looks into the bot's inbox once an hour.
+  it. The "Portraits" workflow is scheduled three times an hour, but
+  GitHub ran only one of the first nine hourly attempts, so answers can
+  take hours; starting the workflow by hand answers at once.
   Only administrators of the channel are served. It answered its first
   real photo from the owner on 2026-11-13.
 - `v1` is the release branch that other repositories pin
@@ -76,8 +78,12 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - `dro/publish.py` sends the post to Telegram when the secrets
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
-  "Send the latest post again" workflow. A delivery from the scheduled
-  daily run has not been seen yet. No other channel is automated.
+  "Send the latest post again" workflow. No other channel is automated.
+- **GitHub's schedule is not reliable.** The first scheduled daily run, on
+  2026-11-13 at 06:23 UTC, never started. The daily workflow therefore has
+  five attempts a day and a first job that stops a scheduled attempt when
+  today's log exists. A delivery from a scheduled run has still not been
+  seen. If a day is missed, start "Dro decides" by hand.
 
 ## Commands
 

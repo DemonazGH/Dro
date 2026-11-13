@@ -81,7 +81,9 @@ be repeated until a nicer answer comes out.
 ## The daily run
 
 `.github/workflows/decide.yml` runs every day at 06:23 UTC and can also be
-started by hand from the Actions tab. On a free GitHub-hosted runner it takes
+started by hand from the Actions tab. GitHub starts scheduled workflows
+late, or not at all, when it is busy, so the workflow tries again at 08:23,
+10:23, 13:23 and 17:23; an attempt that finds today's log stops at once. On a free GitHub-hosted runner it takes
 about a minute; the first run also downloads the tables and builds the
 graph, later runs restore it from the Actions cache. Each run:
 
@@ -278,9 +280,10 @@ always gives the same poster. The fly sees no face, only light and dark,
 and the poster says so.
 
 **By Telegram.** Send the bot a photo in a private chat; a caption becomes
-the name on the poster. Once an hour the "Portraits" workflow looks into
-the bot's inbox and answers. To get the answer sooner, start the workflow
-by hand from the Actions tab. Only administrators of the channel are
+the name on the poster. The "Portraits" workflow is scheduled to look into
+the bot's inbox three times an hour and answer. GitHub skips many scheduled
+runs, so an answer can take hours; to get it at once, start the workflow by
+hand from the Actions tab. Only administrators of the channel are
 served; anyone else is told that portraits are not open yet, and their
 photo is not fetched. A photo is kept only for the seconds it takes to make
 the poster, and nothing about a message is written to the log.

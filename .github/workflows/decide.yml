@@ -1,8 +1,17 @@
 name: Dro decides
 
+# GitHub starts scheduled workflows late or not at all when it is busy, so
+# there are several attempts a day. The first one that runs does the work;
+# the later ones see today's log and stop. A run started by hand always
+# asks a question.
+
 on:
   schedule:
-    - cron: "23 6 * * *" # every day at 06:23 UTC
+    - cron: "23 6 * * *" # 06:23 UTC, and again if that attempt was dropped:
+    - cron: "23 8 * * *"
+    - cron: "23 10 * * *"
+    - cron: "23 13 * * *"
+    - cron: "23 17 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,7 +22,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  today:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      asked: ${{ steps.look.outputs.asked }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: See whether a question was already asked today
+        id: look
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] && ls runs/$(date -u +%F)*.json > /dev/null 2>&1; then
+            echo "asked=true" >> "$GITHUB_OUTPUT"
+            echo "Today's question was already asked; nothing to do."
+          else
+            echo "asked=false" >> "$GITHUB_OUTPUT"
+          fi
+
   decide:
+    needs: today
+    if: needs.today.outputs.asked != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
