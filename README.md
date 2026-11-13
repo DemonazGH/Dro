@@ -190,6 +190,9 @@ On every pull request, and on every push to it, the action:
    spikes of the steering neuron, says what the fly did and what the rig
    did, and says that this is not a code review.
 
+`v1` is a branch of this repository that is moved forward only to states
+of `main` whose tests pass.
+
 The seed comes from the repository, the pull request number and the head
 commit, so running the job again on the same commit gives the same answer.
 The first run in a repository downloads the wiring diagram (about 1.1 GB)
@@ -226,7 +229,7 @@ resources:
     - repository: dro
       type: github
       name: DemonazGH/Dro
-      ref: refs/tags/v1
+      ref: refs/heads/v1
       endpoint: github # the name of a GitHub service connection in your project
 steps:
   - template: azure-pipelines/fly-gate.yml@dro

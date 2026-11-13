@@ -18,7 +18,7 @@ parameters:
   - name: enforce # fail the job when the fly prefers the old lines
     type: boolean
     default: false
-  - name: ref # branch or tag of DemonazGH/Dro to run
+  - name: ref # branch of DemonazGH/Dro to run; v1 is the stable one
     type: string
     default: v1
 

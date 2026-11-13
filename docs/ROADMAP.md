@@ -93,7 +93,7 @@ came from an error and must not be presented as the fly's.
 - [x] See it run on a real pull request: DemonazGH/Dro#1, where the fly
       asked for changes to its own gate. 49 s, graph restored from the
       cache.
-- [x] Tag a release so other repositories can pin a version (`v1`).
+- [x] Give other repositories a version to pin: the release branch `v1`.
 - [x] Same idea for Azure DevOps as a pipeline template
       (`azure-pipelines/fly-gate.yml`).
 - [ ] See the Azure template run in a real Azure DevOps project.

@@ -62,9 +62,12 @@ the model, and `docs/ROADMAP.md` for what to do next.
   (`azure-pipelines/fly-gate.yml`, the Azure branch of `dro/gate.py`) has
   been tested only with a stand-in for the Azure DevOps API and has never
   run in a real project.
-- Releases are tagged `v1.0.0` and so on, with `v1` for other repositories
-  to pin. Both the GitHub Action and the Azure template run this
-  repository's code at that tag.
+- `v1` is the release branch that other repositories pin
+  (`DemonazGH/Dro@v1`). Both the GitHub Action and the Azure template run
+  this repository's code at that branch. Move it forward with
+  `git push origin main:v1` only when the tests on `main` pass and Fly Gate
+  still works; never force it. Tags cannot be pushed from a Claude Code
+  session, which is why it is a branch.
 - `dro/publish.py` sends the post to Telegram when the secrets
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
@@ -125,7 +128,7 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   use it as `DemonazGH/Dro@v1`: the action installs `requirements.txt` and
   runs `dro.graph` and `dro.gate` from the checked-out action.
 - `azure-pipelines/fly-gate.yml`: the same as steps of an Azure Pipelines
-  job. It clones this repository at the tag given by its `ref` parameter,
+  job. It clones this repository at the branch given by its `ref` parameter,
   cuts the diff from the merge commit the build checked out and passes it
   to `dro.gate --patch`.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
