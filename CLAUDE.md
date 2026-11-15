@@ -7,6 +7,11 @@ steering neuron, commits a run log and a post, and sends the post to the
 channels the owner (GitHub: DemonazGH) has switched on. The owner wants the
 whole process to run without him and without a local setup.
 
+The project is meant to be entertaining and educational (the owner's
+words, 2026-11-15): the joke brings people in, and they should leave with
+something true about brains and about how a simulation is checked. See
+"Direction" in `docs/CONCEPT.md`.
+
 Read `README.md` for how the pipeline works, `docs/CONCEPT.md` for the persona
 and the formats, `docs/CALIBRATION_NOTES.md` for what has been tried on
 the model, and `docs/ROADMAP.md` for what to do next.
@@ -92,6 +97,10 @@ the model, and `docs/ROADMAP.md` for what to do next.
   Actions). The Telegram channel is <https://t.me/dro_flycorp>.
 - A measured pair can still come out the other way: "Call or text?" did on
   2026-11-15 (experiment 24). Do not describe a measured pair as certain.
+- The website has a section "What we got wrong" (`MISTAKES` in
+  `dro/site.py`): the errors the checks found, in plain words. Add to it
+  when a new error is found, and keep it in step with the calibration
+  notes.
 
 ## Commands
 

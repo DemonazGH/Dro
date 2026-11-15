@@ -31,6 +31,61 @@ NEURONS = 165_122
 # Measured in experiments 21 and 22 of docs/CALIBRATION_NOTES.md.
 PAIRS_MEASURED, PAIRS_REPEATING, PAIRS_FOLLOWING_CONTRAST = 42, 34, 30
 FOOTER_STARTS = "Decided by the fly:"
+NOTES = REPOSITORY + "/blob/main/docs/CALIBRATION_NOTES.md"
+# What was wrong, how it was found and what was done about it. Each entry
+# must match the calibration notes; the last item names the experiments.
+MISTAKES = (
+    (
+        "The first simulator left out one step",
+        "In the published model a neuron's input is cleared when it fires. The first version here did not do "
+        "that. This one missing step made the brain about 70 times more active: tens of thousands of neurons "
+        "fired at once, and the early “choices” were a few stray spikes that changed with the random seed.",
+        "Found by reading the authors' code line by line and repeating their first experiment: sugar-sensing "
+        "neurons should make the fly's proboscis motor neuron fire.",
+        "The simulator now follows the published code step by step, and that experiment is a test anyone can "
+        "run.",
+        "Experiments 6 and 7",
+    ),
+    (
+        "One constant was fitted to a different fly",
+        "The strength of a synapse in the published model was tuned on another dataset, from a female fly, "
+        "in which synapses are counted differently. With that value even the corrected model ran away on "
+        "this dataset.",
+        "Found with the same sugar experiment: thousands of neurons fired where a few hundred should.",
+        "The constant was fitted again here, with the published experiment and before looking at any "
+        "decision: 0.10 millivolts per synapse instead of 0.275.",
+        "Experiments 8 to 10",
+    ),
+    (
+        "The picture never left the eye",
+        "Once the model was correct, a picture shown to the first cells of the eye was lost two cells later. "
+        "Nothing reached the steering neurons, and every decision came out undecided. The cells of a fly's eye "
+        "work with graded signals and timing that this simple neuron does not have.",
+        "Found by following the activity cell type by cell type from the eye inwards.",
+        "The rig now does the early vision itself and hands the result to the object-detecting cells. Every "
+        "post says so.",
+        "Experiments 11 to 15",
+    ),
+    (
+        "The right side wins",
+        "When both eyes see something, the right steering neuron usually fires more than the left. The dataset "
+        "holds about 20 % more synapses in the right half of the visual system than in the left, and one "
+        "neuron on each side silences the steering neuron of the other side.",
+        "Found by switching that neuron off in the simulation: the two sides then answer alike.",
+        "A correction was tried and thrown out, because it failed its own test. Instead every question is "
+        "asked twice with the sides swapped.",
+        "Experiments 18 and 19",
+    ),
+    (
+        "A sure thing that was not",
+        "“Call or text?” gave “call” in 40 of 40 test runs. On 15 November 2026 the daily run gave “text”, by "
+        "one spike.",
+        "Found the same day; the run was repeated on another machine and gave the same spikes.",
+        "Nothing was changed. Measured does not mean certain, and the log of that day says both what was "
+        "measured and what happened.",
+        "Experiment 24",
+    ),
+)
 GATE_EXAMPLE = """name: Fly Gate
 on: pull_request
 permissions:
@@ -199,6 +254,32 @@ def archive(decisions: list[dict]) -> str:
 </section>"""
 
 
+def mistakes() -> str:
+    """The checks the simulator went through and what they turned up."""
+    items = "".join(
+        f"""
+      <li class="card">
+        <h3>{text(title)}</h3>
+        <p>{text(what)}</p>
+        <p class="small">{text(found)}</p>
+        <p class="small">{text(done)}</p>
+        <p class="source">{text(source)}</p>
+      </li>"""
+        for title, what, found, done, source in MISTAKES
+    )
+    return f"""
+<section id="mistakes" aria-labelledby="mistakes-title">
+  <div class="wrap">
+    <h2 id="mistakes-title" class="section-title">What we got wrong</h2>
+    <p class="intro">The simulator was checked against the published model it is built on, and the checks found
+      real errors. Dro's first answers were produced by a bug. This is what was wrong, how it was found and what
+      was done about it. <a href="{NOTES}">The full notes, with every number</a>.</p>
+    <ol class="mistakes">{items}
+    </ol>
+  </div>
+</section>"""
+
+
 def page(decisions: list[dict], upcoming: str | None, waiting: int) -> str:
     newest, earlier = decisions[-1], decisions[-2::-1]
     judged = [d for d in decisions if d["by_input"] in ("a", "b") and d["choice"] in ("a", "b")]
@@ -255,6 +336,7 @@ def page(decisions: list[dict], upcoming: str | None, waiting: int) -> str:
         <li><a href="#who">Who did what</a></li>
         <li><a href="#how">How it works</a></li>
         <li><a href="#trust">How far to trust it</a></li>
+        <li><a href="#mistakes">What we got wrong</a></li>
         <li><a href="#archive">Earlier decisions</a></li>
         <li><a href="#gate">Fly Gate</a></li>
         <li><a href="#portraits">Portraits</a></li>
@@ -326,9 +408,10 @@ def page(decisions: list[dict], upcoming: str | None, waiting: int) -> str:
       constant is fitted, against a published experiment. A picture fed into the fly's eye is lost two cells
       later in this model, which is why the rig does the early vision itself. The right side of the brain wins
       more often than the left, probably because of the data rather than the animal.
-      <a href="{REPOSITORY}/blob/main/docs/CALIBRATION_NOTES.md">Every experiment, including the failed ones</a>.</p>
+      <a href="{NOTES}">Every experiment, including the failed ones</a>.</p>
   </div>
 </section>
+{mistakes()}
 {archive(earlier)}
 <section id="gate" aria-labelledby="gate-title">
   <div class="wrap">

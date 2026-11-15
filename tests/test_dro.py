@@ -819,6 +819,8 @@ def test_site_is_built_from_the_logs(tmp_path):
     assert 'width="120" height="74"' in page  # sizes come from the pictures themselves
     assert "Next in the queue: “Cat or dog?”" in page
     assert "<span class=\"figure\">1 of 2</span>" in page  # the fly agreed with the contrast once of twice
+    assert 'id="mistakes"' in page and "The first simulator left out one step" in page
+    assert page.count('<li class="card">\n        <h3>') == 5
 
 
 def test_site_escapes_what_comes_from_the_logs_and_has_no_scripts(tmp_path):

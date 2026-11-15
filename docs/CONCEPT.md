@@ -2,6 +2,23 @@
 
 As of 2026-11-11. English version of the owner's working concept document.
 
+## Direction
+
+Entertaining and educational: that is what the owner set out to make.
+
+The joke brings people in: a fly with a job title, deciding things it
+cannot read. What they should leave with is something true: how a brain is
+wired, what a simulation of it can and cannot do, and how such a model is
+checked and corrected.
+
+What follows from that:
+
+- Every format carries one true thing, not only a punchline.
+- Mistakes and limits are content, not small print. The website has a
+  section on what was wrong and how it was found.
+- Nothing is dressed up. No "uploaded mind", no advice, no claim that goes
+  beyond what was measured.
+
 ## Summary
 
 The wave started on 4 September 2026 and within two weeks reached Doom, Beat
