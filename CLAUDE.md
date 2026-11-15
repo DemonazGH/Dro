@@ -159,7 +159,8 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   only; everything taken from a log is escaped. The figures on how far to
   trust the answers are constants at the top and must follow the
   calibration notes. `CHANNEL` holds the address of the Telegram channel.
-- `web/`: `style.css` and `favicon.svg`. Colours follow the visitor's light
+- `web/`: `style.css` and `favicon.svg`; `logo.svg` and `logo.png` are the
+  picture of the Telegram channel (a fly's face, eyes made of the site's dots). Colours follow the visitor's light
   or dark setting. Keep the page free of scripts and of requests to other
   hosts.
 - `dro/telegram.py`: the calls to the Telegram Bot API. Standard library
