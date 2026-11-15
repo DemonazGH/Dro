@@ -16,7 +16,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Fifty tests pass (`python -m pytest -q`).
+- Fifty-two tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -79,11 +79,19 @@ the model, and `docs/ROADMAP.md` for what to do next.
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
   "Send the latest post again" workflow. No other channel is automated.
-- **GitHub's schedule is not reliable.** The first scheduled daily run, on
-  2026-11-13 at 06:23 UTC, never started. The daily workflow therefore has
-  five attempts a day and a first job that stops a scheduled attempt when
-  today's log exists. A delivery from a scheduled run has still not been
-  seen. If a day is missed, start "Dro decides" by hand.
+- **GitHub's schedule is late but works.** The first scheduled daily run,
+  on 2026-11-13 at 06:23 UTC, never started. The daily workflow therefore
+  has five attempts a day and a first job that stops a scheduled attempt
+  when today's log exists. On 2026-11-14 and 2026-11-15 the post went out
+  from a scheduled run, around 14:00 UTC, hours after the first slot. If a
+  day is missed, start "Dro decides" by hand.
+- **The website** (`dro/site.py`, `web/`) is built from the run logs and
+  published on GitHub Pages by the "Site" workflow, at
+  <https://demonazgh.github.io/Dro/>. It is one HTML file with one
+  stylesheet and no scripts. The owner has to switch Pages on once
+  (Settings, Pages, Source "GitHub Actions").
+- A measured pair can still come out the other way: "Call or text?" did on
+  2026-11-15 (experiment 24). Do not describe a measured pair as certain.
 
 ## Commands
 
@@ -103,6 +111,7 @@ python -m dro.draft --llm                             # same, worded by a langua
 python -m dro.publish runs/2026-11-13.md              # send a post; needs the Telegram variables
 python -m dro.portrait photo.jpg --out portrait.png   # portrait through a fly's eyes
 python -m dro.portrait_bot --peek                     # messages waiting for the bot
+python -m dro.site --out _site                        # build the website; needs only Python
 git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
 ```
 
@@ -132,6 +141,15 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   `acceptable`, `footer`, `editor_notes`, `post_text`). `anthropic` is
   imported only for `--llm` and is not in `requirements.txt`; the daily job
   installs it only when the key exists.
+- `dro/logs.py`: reading run logs and posts (`log_order`, `run_logs`,
+  `next_question`, `post_text`). Standard library only.
+- `dro/site.py`: the website (`load`, `page`, `build`). Standard library
+  only; everything taken from a log is escaped. The figures on how far to
+  trust the answers are constants at the top and must follow the
+  calibration notes. `CHANNEL` holds the address of the Telegram channel.
+- `web/`: `style.css` and `favicon.svg`. Colours follow the visitor's light
+  or dark setting. Keep the page free of scripts and of requests to other
+  hosts.
 - `dro/telegram.py`: the calls to the Telegram Bot API. Standard library
   only and no imports from the project, so it works before the
   simulation's dependencies are installed.
@@ -153,9 +171,9 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   to `dro.gate --patch`.
 - `.github/workflows/`: `decide.yml` (daily run), `add-question.yml`
   (measure a pair and queue it), `publish.yml` (send the newest post again
-  after a failed delivery), `portraits.yml` (hourly look into the bot's
-  inbox), `fly-gate.yml` (Fly Gate on this repository's pull requests),
-  `tests.yml`.
+  after a failed delivery), `portraits.yml` (look into the bot's inbox),
+  `site.yml` (build and publish the website), `fly-gate.yml` (Fly Gate on
+  this repository's pull requests), `tests.yml`.
 
 ## Rules
 

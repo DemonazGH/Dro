@@ -1,6 +1,8 @@
 """Tests that run on a tiny hand-made network, without the real connectome."""
 
 import json
+import shutil
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -25,6 +27,7 @@ from dro.repeat import add_to_queue, note, repeats, summary
 from dro.repeat import run as repeat_run
 from dro.sanity import sugar_neurons, verdict
 from dro.sim import simulate
+from dro.site import build as build_site
 from dro.stimulus import CANVAS, local_contrast, render, render_lines, views
 
 
@@ -772,3 +775,56 @@ def test_portrait_bot_does_nothing_without_messages_or_credentials(monkeypatch, 
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     assert portrait_bot.main(["--peek"]) == 0
     assert capsys.readouterr().out.strip() == "waiting=0"
+
+
+def site_root(tmp_path):
+    """A copy of what the site is built from, with three made-up runs."""
+    here = Path(__file__).resolve().parent.parent
+    root = tmp_path / "repo"
+    shutil.copytree(here / "web", root / "web")
+    (root / "docs" / "sample-portrait").mkdir(parents=True)
+    shutil.copyfile(here / "docs" / "sample-portrait" / "grace.png", root / "docs" / "sample-portrait" / "grace.png")
+    runs = root / "runs"
+    runs.mkdir()
+    first = run_log(choice="b", toward=(3, 9))
+    first.update(choice_by_input_alone="a", input_rate_hz={"a": 41.8, "b": 34.2})
+    (runs / "2026-11-12.json").write_text(json.dumps(first))
+    second = run_log(choice="undecided", toward=(4, 4))
+    second["question"] = "<script>alert(1)</script> or not?"
+    (runs / "2026-11-12-2.json").write_text(json.dumps(second))
+    newest = run_log()
+    newest.update(choice_by_input_alone="a", input_rate_hz={"a": 41.8, "b": 34.2}, question="Newest question?")
+    (runs / "2026-11-13.json").write_text(json.dumps(newest))
+    (runs / "2026-11-13.md").write_text(build(newest, "2026-11-13.json", unattended=True))
+    Image.new("L", (120, 74)).save(runs / "2026-11-13.png")
+    Image.new("L", (120, 74)).save(runs / "2026-11-12.png")
+    (root / "questions.json").write_text(json.dumps([
+        {"question": "Tabs or spaces?", "a": "tabs", "b": "spaces"},
+        {"question": "Cat or dog?", "a": "cat", "b": "dog"},
+    ]))
+    return root
+
+
+def test_site_is_built_from_the_logs(tmp_path):
+    root = site_root(tmp_path)
+    numbers = build_site(root, tmp_path / "site")
+    assert numbers == {"decisions": 3, "newest": "2026-11-13", "waiting": 1}
+    page = (tmp_path / "site" / "index.html").read_text()
+    for name in ("style.css", "favicon.svg", "portrait.png", "runs/2026-11-13.png", "runs/2026-11-12.png"):
+        assert (tmp_path / "site" / name).exists()
+    assert page.index("Newest question?") < page.index('id="archive"')  # the newest decision leads
+    assert "Dro turned towards <strong>tabs</strong>" in page
+    assert "Automatic post, no human edited it." in page and NOTES_MARKER not in page
+    assert page.count('fetchpriority="high"') == 1 and 'loading="lazy"' in page
+    assert 'width="120" height="74"' in page  # sizes come from the pictures themselves
+    assert "Next in the queue: “Cat or dog?”" in page
+    assert "<span class=\"figure\">1 of 2</span>" in page  # the fly agreed with the contrast once of twice
+
+
+def test_site_escapes_what_comes_from_the_logs_and_has_no_scripts(tmp_path):
+    root = site_root(tmp_path)
+    build_site(root, tmp_path / "site")
+    page = (tmp_path / "site" / "index.html").read_text()
+    assert "<script" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt; or not?" in page
+    assert "undecided" in page

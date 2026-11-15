@@ -162,6 +162,15 @@ python -m dro.draft --llm                # the same, worded by a language model
 python -m dro.publish runs/2026-11-13.md # send a post; needs the Telegram variables
 ```
 
+## The website
+
+<https://demonazgh.github.io/Dro/> shows the newest decision, who did what,
+how far the answers can be trusted, every earlier decision, Fly Gate and
+the portraits. `python -m dro.site --out _site` builds it from the run
+logs: one HTML file, one stylesheet, no scripts, nothing to install. The
+"Site" workflow publishes it on GitHub Pages after every daily run and
+after every change to the page.
+
 ## Fly Gate
 
 Fly Gate lets the fly look at pull requests. Add this workflow to any
@@ -310,6 +319,9 @@ python -m dro.portrait photo.jpg --out portrait.png --name "Grace"
 | `dro/portrait.py` | Portrait through a fly's eyes: a photo in, a poster out |
 | `dro/portrait_bot.py` | Answers photos sent to the Telegram bot with portraits |
 | `dro/telegram.py` | The calls to the Telegram Bot API |
+| `dro/site.py` | Builds the website from the run logs |
+| `dro/logs.py` | Reads run logs and posts; needs only Python |
+| `web/` | Stylesheet and icon of the website |
 | `dro/gate.py` | Fly Gate: shows the fly a pull request and comments on it |
 | `action.yml` | Fly Gate as a GitHub Action for other repositories |
 | `azure-pipelines/fly-gate.yml` | Fly Gate as the steps of an Azure Pipelines job |
@@ -371,6 +383,9 @@ Read these before trusting an answer from a fly.
   same contrast do not repeat ("ship on Friday / wait until Monday" split 9
   to 9). Such pairs are kept out of the question queue: a question is added
   only after it has been measured.
+- **Measured does not mean certain.** "Call or text?" won 40 of 40 measured
+  runs for "call", and the daily run of 15 November 2026 still came out
+  "text", by one spike.
 - **Some choices rest on a handful of spikes.** With both eyes driven the
   two sides suppress each other, and seven of the 42 pairs were decided by
   fewer than five spikes in total.

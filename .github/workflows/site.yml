@@ -1,0 +1,63 @@
+name: Site
+
+# Builds the website from the run logs and publishes it on GitHub Pages.
+# Needs Pages to be switched on once: Settings, Pages, Source "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "runs/**"
+      - "web/**"
+      - "dro/site.py"
+      - "dro/logs.py"
+      - "questions.json"
+      - "docs/sample-portrait/**"
+      - ".github/workflows/site.yml"
+  # The daily run commits with the workflow token, and such commits start no
+  # other workflow, so the site follows the daily run by name instead.
+  workflow_run:
+    workflows: ["Dro decides"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The site needs nothing but Python.
+      - name: Build the site
+        run: python -m dro.site --out _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

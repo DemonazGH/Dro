@@ -106,7 +106,7 @@ Still two regimes. At 0.20 mV and 150 Hz the runaway is milder, 448
 descending neurons are active and steering fires on both sides. This is the
 closest point to a usable regime so far.
 
-## Setup for experiments 6 to 23 (2026-11-12)
+## Setup for experiments 6 to 24 (2026-11-12 to 2026-11-15)
 
 - Graph: as above. A second graph with 5 or more synapses per connection
   (6,185,843 connections) was built for comparison.
@@ -771,6 +771,30 @@ So the verdict does not follow the size of a change. It is clear only when
 one side has fewer than about eight lines; otherwise it compares the
 texture of the first eight lines on each side. The comment says that the
 rig drew the first lines and that contrast usually decides.
+
+## Experiment 24: a measured pair came out the other way (2026-11-15)
+
+The daily run of 2026-11-15 asked "Call or text?" (seed 4210717165) and got
+"text", 14 steering spikes against 13. The pair had been measured at 20 of
+20 for "call" (experiment 21). The run was repeated on another machine with
+the same seed and gave the same spikes, so it is not a fault of the run.
+
+To see whether the measuring seeds (10, 20, ... 200) understate the spread,
+the pair was run again with those 20 seeds and with 20 large seeds taken
+from a hash, like the daily run's.
+
+| Seeds | "call" won | "text" won | Steering spikes for "call", mean (sd) | For "text", mean (sd) |
+| --- | --- | --- | --- | --- |
+| 10 to 200 | 20 | 0 | 19.6 (2.5) | 11.1 (2.6) |
+| 20 large seeds | 20 | 0 | 20.6 (3.0) | 9.4 (3.0) |
+
+- Small and large seeds give the same picture, so the measuring method is
+  not biased.
+- The daily run was an outlier: 13 for "call" is about two and a half
+  standard deviations below its mean. Counting it, "call" won 40 of 41.
+- So "20 of 20" does not mean "always". A pair whose two counts are about
+  three standard deviations apart will come out the other way now and
+  then. The log of that day says what was measured and what happened.
 
 ## Open questions and ideas
 

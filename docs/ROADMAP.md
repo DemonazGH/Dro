@@ -108,5 +108,9 @@ came from an error and must not be presented as the fly's.
 - [ ] Decide whether to open portraits to everyone; that needs a privacy
       notice and a limit on how many are made.
 
+- [x] A website on GitHub Pages, built from the run logs after every daily
+      run (`python -m dro.site`).
+- [ ] Owner switches GitHub Pages on; then see the first deployment.
+
 Also in `docs/CONCEPT.md`: the
 "fly is my boss for 30 days" series, the Telegram pet bot.

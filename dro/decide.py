@@ -28,7 +28,6 @@ import argparse
 import datetime as dt
 import hashlib
 import json
-import re
 import sys
 import time
 from pathlib import Path
@@ -37,6 +36,7 @@ import numpy as np
 
 from . import __version__
 from .graph import Graph, load
+from .logs import log_order, next_question  # noqa: F401 (used by other modules and tests)
 from .sim import Params, simulate
 from .stimulus import INPUT_TYPE, RULE, input_rates, render, views
 
@@ -79,27 +79,6 @@ def input_by_option(trials: list[dict]) -> tuple[dict, str]:
     if rate["a"] == rate["b"]:
         return rate, "tie"
     return rate, "a" if rate["a"] > rate["b"] else "b"
-
-
-def log_order(path: Path) -> tuple:
-    """Sort key for run logs: date, then the run number within that date."""
-    match = re.fullmatch(r"(\d{4}-\d{2}-\d{2})(?:-(\d+))?", path.stem)
-    return (match.group(1), int(match.group(2) or 1)) if match else ("", 0)
-
-
-def next_question(queue: list[dict], runs: Path) -> dict:
-    """The question to ask next.
-
-    The first entry of the queue whose pair of options has no run log yet.
-    Once every entry has been asked, the one asked longest ago. The choice
-    depends only on the queue and the logs, never on a result.
-    """
-    last_asked = {}
-    logs = sorted((path for path in runs.glob("*.json") if log_order(path)[0]), key=log_order)
-    for position, path in enumerate(logs):
-        options = json.loads(path.read_text(encoding="utf-8")).get("options", {})
-        last_asked[frozenset(options.values())] = position
-    return min(queue, key=lambda entry: last_asked.get(frozenset((entry["a"], entry["b"])), -1))
 
 
 def make_seed(date: str, question: str, option_a: str, option_b: str) -> int:

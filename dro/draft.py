@@ -29,10 +29,10 @@ import json
 import sys
 from pathlib import Path
 
-from .decide import input_by_option, log_order
+from .decide import input_by_option
+from .logs import NOTES_MARKER, log_order, post_text  # noqa: F401 (post_text is used by other modules)
 
 DEFAULT_MODEL = "claude-opus-5-5"
-NOTES_MARKER = "--- notes for the editor, not part of the post ---"
 # A post from the language model is thrown away if it contains any of these:
 # claims the project never makes, and topics the persona must not advise on.
 FORBIDDEN = (
@@ -226,11 +226,6 @@ def build(
     post = llm_post(known, model, client) if use_model else template_post(known)
     parts = [post, footer(known, use_model, unattended), editor_notes(known, log_name, use_model, unattended)]
     return "\n\n".join(parts) + "\n"
-
-
-def post_text(draft: str) -> str:
-    """The part of a draft that is published: the post and its footer."""
-    return draft.split(NOTES_MARKER)[0].strip()
 
 
 def latest_log(runs: Path) -> Path:
