@@ -309,6 +309,13 @@ figcaption {
     font-size: 1.12rem;
   }
 
+  & .shows {
+    font: 0.98rem/1.55 var(--sans);
+    padding: 0.7rem 0.85rem;
+    background: var(--amber-soft);
+    border-radius: 0.5rem;
+  }
+
   & ul {
     margin: 0.75rem 0 0;
     padding: 0;

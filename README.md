@@ -105,20 +105,30 @@ graph, later runs restore it from the Actions cache. Each run:
 
 ### The post
 
-A post has the text in the persona's voice and a footer. The text comes
-from a fixed template, or from a language model that is given only the
-question, the winner and the spike counts. The footer is built from the log
-by code, never by the language model:
+A post has three parts: the text in the persona's voice, one line on what
+the run shows, and a footer. The text comes from a fixed template, or from
+a language model that is given only the question, the winner and the spike
+counts. The other two parts are built from the log by code, never by the
+language model:
 
 ```text
+What this shows: only the right steering neuron fired, in both trials. One neuron on each side silences the steering neuron of the other, so the stronger side takes all. Showing each option to each eye in turn keeps that from deciding the answer.
+
 Decided by the fly: "tabs", 33 steering spikes against 0.
 Done by the rig: the question, the two pictures and the early vision. The picture with more contrast usually wins; today it did.
 Worded from a template. Automatic post, no human edited it.
 Dro is a simulation of a fly's wiring diagram. It is not alive and it cannot read.
 ```
 
-It says what the fly decided, what the rig did, whether the fly agreed
-with the rig's contrast number, and who worded the post. A question without
+The line on what the run shows is the educational part of the post: one
+true thing about the simulated brain. What happened in the run decides
+which explanation applies (a tie, a margin inside the noise, a turn against
+the contrast, one side silencing the other, a turn that followed the
+picture across the eyes). Every explanation was written by hand against
+the calibration notes; none is generated.
+
+The footer says what the fly decided, what the rig did, whether the fly
+agreed with the rig's contrast number, and who worded the post. A question without
 a `repeatability` note gets a warning that it may be a coin toss. A post
 from the language model is thrown away, and a template used instead, if it
 is too long or contains words such as "conscious", "alive" or "invest".

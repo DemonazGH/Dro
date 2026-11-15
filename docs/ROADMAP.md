@@ -67,6 +67,8 @@ came from an error and must not be presented as the fly's.
       worded the post (`python -m dro.draft`).
 - [x] Drafts go to a file for the owner to edit. No posting.
 - [ ] Try `--llm` against the real API once the owner has a key.
+- [x] Every post says what the run shows: one true thing about the
+      simulated brain, picked by what happened in the run.
 
 ## 3a. Run without the owner
 

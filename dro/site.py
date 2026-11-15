@@ -22,7 +22,7 @@ import struct
 import sys
 from pathlib import Path
 
-from .logs import log_order, next_question, post_text, run_logs
+from .logs import SHOWS, log_order, next_question, post_text, run_logs
 
 REPOSITORY = "https://github.com/DemonazGH/Dro"
 ADDRESS = "https://demonazgh.github.io/Dro/"
@@ -201,7 +201,10 @@ def picture(decision: dict, first: bool) -> str:
 def post(decision: dict) -> str:
     if not decision["post"]:
         return ""
-    paragraphs = "".join(f"<p>{text(part)}</p>" for part in decision["post"])
+    paragraphs = "".join(
+        f'<p class="shows">{text(part)}</p>' if part.startswith(SHOWS) else f"<p>{text(part)}</p>"
+        for part in decision["post"]
+    )
     footer = "".join(f"<li>{text(line)}</li>" for line in decision["footer"])
     return f'<blockquote class="post">{paragraphs}<ul>{footer}</ul></blockquote>'
 

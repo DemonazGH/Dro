@@ -10,15 +10,18 @@ Usage::
 The draft is written to ``drafts/``, which is not committed, unless ``--out``
 says otherwise. This module posts nothing; ``publish.py`` does that.
 
-A draft has three parts:
+A draft has four parts:
 
 1. The post, in the voice of the persona. By default it comes from a small
    set of fixed templates. With ``--llm`` a language model words it from the
    facts of the decision; that needs the ``anthropic`` package and an API key
    in the environment.
-2. The footer. It is built from the log, never by the language model, and
+2. One line on what the run shows: a true thing about the simulated brain,
+   picked by what happened in this run from explanations written and
+   checked in advance.
+3. The footer. It is built from the log, never by the language model, and
    says what the fly decided, what the rig did and who wrote the words.
-3. Notes for the editor: the numbers behind the post and what to check
+4. Notes for the editor: the numbers behind the post and what to check
    before publishing. These are not part of the post.
 """
 
@@ -30,7 +33,7 @@ import sys
 from pathlib import Path
 
 from .decide import input_by_option
-from .logs import NOTES_MARKER, log_order, post_text  # noqa: F401 (post_text is used by other modules)
+from .logs import NOTES_MARKER, SHOWS, log_order, post_text  # noqa: F401 (post_text is used by other modules)
 
 DEFAULT_MODEL = "claude-opus-5-5"
 # A post from the language model is thrown away if it contains any of these:
@@ -40,6 +43,10 @@ FORBIDDEN = (
     "diagnos", "medication", "lawsuit", "legal advice",
 )
 MAX_WORDS = 130
+# A gap smaller than this many spikes is treated as noise (experiment 24).
+SMALL_MARGIN = 5
+# Of the pairs that repeat, how many go against the contrast (experiments 21 and 22).
+AGAINST_CONTRAST = "4 of 34"
 
 DECIDED = (
     'They asked me: {question} I did not read the question. I cannot read. Two pictures came '
@@ -118,6 +125,9 @@ def facts(record: dict) -> dict:
         "repeatability": record.get("repeatability"),
         "seed": record["seed"],
         "date": record.get("date"),
+        "trials": record.get("trials", []),
+        "neurons": (record.get("graph") or {}).get("neurons"),
+        "cells": sum((record.get("input") or {}).get(key, 0) for key in ("cells_left", "cells_right")),
     }
 
 
@@ -159,6 +169,73 @@ def acceptable(text: str) -> bool:
     """Whether a post from the language model may be used at all."""
     lowered = text.lower()
     return len(text.split()) <= MAX_WORDS and not any(word in lowered for word in FORBIDDEN)
+
+
+def insight(known: dict) -> str:
+    """One true thing this run shows.
+
+    What happened in the run decides which explanation applies. A tie, a
+    margin inside the noise and a turn against the contrast come first,
+    because they are rare and say the most. Otherwise the seed picks among
+    the explanations that are true of this run. Every sentence here was
+    written by hand against the calibration notes; none is generated.
+    """
+    winner, margin = known["winner"], known["won"] - known["lost"]
+    if not known["decided"]:
+        return (
+            f"{SHOWS} the two counts were equal, so nothing was decided. Each side of this brain "
+            "suppresses the other, and when neither gets ahead there is no turn to read."
+        )
+    if margin < SMALL_MARGIN:
+        spikes = "one spike" if margin == 1 else f"{margin} spikes"
+        return (
+            f"{SHOWS} the margin was {spikes}. The input to the brain is random from one run to the next, "
+            "and a gap this small is inside that noise. On another day the same question could go the "
+            "other way."
+        )
+    if known["by_input"] in ("a", "b") and known["by_input"] != known["choice"]:
+        return (
+            f'{SHOWS} the picture with more contrast was "{known["loser"]}", yet the brain turned to '
+            f'"{winner}". In testing that happened in {AGAINST_CONTRAST} pairs. On those the wiring makes '
+            "the call, not the rig."
+        )
+
+    true_today = []
+    trials = known["trials"]
+    if len(trials) == 2 and all("steering_spikes_left" in trial for trial in trials):
+        left = [trial["steering_spikes_left"] for trial in trials]
+        right = [trial["steering_spikes_right"] for trial in trials]
+        for side, mine, other in (("right", right, left), ("left", left, right)):
+            if sum(other) == 0 and all(mine):
+                true_today.append(
+                    f"{SHOWS} only the {side} steering neuron fired, in both trials. One neuron on each side "
+                    "silences the steering neuron of the other, so the stronger side takes all. Showing each "
+                    "option to each eye in turn keeps that from deciding the answer."
+                )
+        # Did the turn go with the option when the option changed eyes?
+        on_left, on_right = (0, 1) if trials[0]["left_eye"] == known["choice"] else (1, 0)
+        if left[on_left] > right[on_left] and right[on_right] > left[on_right]:
+            true_today.append(
+                f'{SHOWS} the turn followed the picture. "{winner}" won when it was shown to the left eye and '
+                "again when it was shown to the right. That is the sign of a choice made by what was shown, "
+                "not by where."
+            )
+        active = max(trial.get("neurons_active", 0) for trial in trials)
+        if active and known["neurons"]:
+            true_today.append(
+                f"{SHOWS} {active:,} of {known['neurons']:,} simulated neurons fired. A picture does not light "
+                "up the whole brain. It wakes one small circuit that leads from the eye to the steering neuron."
+            )
+    if known["cells"]:
+        true_today.append(
+            f"{SHOWS} the picture entered the brain through {known['cells']} cells that respond to visual "
+            "objects, about 140 behind each eye. Everything after them, up to the turn, is the fly's own wiring."
+        )
+    true_today.append(
+        f"{SHOWS} the fly cannot read. A word reaches it as a patch of light and dark, and what its cells "
+        "respond to is contrast: how sharply the patch changes from one spot to the next."
+    )
+    return true_today[known["seed"] % len(true_today)]
 
 
 def footer(known: dict, worded_by_model: bool, unattended: bool = False) -> str:
@@ -221,10 +298,15 @@ def build(
     client=None,
     unattended: bool = False,
 ) -> str:
-    """The whole draft: post, footer, notes."""
+    """The whole draft: post, what the run shows, footer, notes."""
     known = facts(record)
     post = llm_post(known, model, client) if use_model else template_post(known)
-    parts = [post, footer(known, use_model, unattended), editor_notes(known, log_name, use_model, unattended)]
+    parts = [
+        post,
+        insight(known),
+        footer(known, use_model, unattended),
+        editor_notes(known, log_name, use_model, unattended),
+    ]
     return "\n\n".join(parts) + "\n"
 
 

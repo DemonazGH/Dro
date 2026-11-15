@@ -21,7 +21,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Fifty-two tests pass (`python -m pytest -q`).
+- Fifty-five tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -97,6 +97,9 @@ the model, and `docs/ROADMAP.md` for what to do next.
   Actions). The Telegram channel is <https://t.me/dro_flycorp>.
 - A measured pair can still come out the other way: "Call or text?" did on
   2026-11-15 (experiment 24). Do not describe a measured pair as certain.
+- Every post carries a line "What this shows" (`insight` in
+  `dro/draft.py`): one true thing about the simulated brain, picked by what
+  happened in the run. This is the educational part of the post.
 - The website has a section "What we got wrong" (`MISTAKES` in
   `dro/site.py`): the errors the checks found, in plain words. Add to it
   when a new error is found, and keep it in step with the calibration
@@ -147,7 +150,7 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   (`add_to_queue`). A measuring tool only; never use it to choose a seed
   for a real decision.
 - `dro/draft.py`: run log to post (`facts`, `template_post`, `llm_post`,
-  `acceptable`, `footer`, `editor_notes`, `post_text`). `anthropic` is
+  `acceptable`, `insight`, `footer`, `editor_notes`, `post_text`). `anthropic` is
   imported only for `--llm` and is not in `requirements.txt`; the daily job
   installs it only when the key exists.
 - `dro/logs.py`: reading run logs and posts (`log_order`, `run_logs`,
@@ -209,6 +212,11 @@ git diff main... | python -m dro.gate --patch -       # Fly Gate on any diff
   to `questions.json`, and nothing else.
 - **The footer is never optional.** No code path may publish a post without
   the footer built by `dro/draft.py`.
+- **"What this shows" must be true of the run.** Every explanation in
+  `insight` is written by hand, backed by an experiment in the calibration
+  notes, and guarded by a condition on the log and a test. Never let a
+  language model write this line, and never state more than was
+  measured.
 - **Photos of people are personal data.** The portrait bot serves only
   administrators of the channel. Do not open it to everyone without the
   owner's decision and a privacy notice. Never store a photo or a poster in

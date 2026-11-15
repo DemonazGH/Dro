@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 NOTES_MARKER = "--- notes for the editor, not part of the post ---"
+SHOWS = "What this shows:"  # starts the line of a post that says what the run shows
 
 
 def log_order(path: Path) -> tuple:

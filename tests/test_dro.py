@@ -10,7 +10,7 @@ from PIL import Image
 from scipy import sparse
 
 from dro.decide import decide, input_by_option, main, make_seed, next_question, save_raster
-from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, latest_log, post_text
+from dro.draft import NOTES_MARKER, acceptable, build, facts, footer, insight, latest_log, post_text
 from dro.draft import main as draft_main
 from dro.gate import MARKER, azure_context, azure_head, changed_lines, comment, current_head, fetch_patches
 from dro.gate import look, post_azure_thread, post_comment, spike_strip
@@ -243,8 +243,11 @@ def test_input_by_option_follows_the_swap_of_sides():
     assert input_by_option(trials) == ({"a": 31.0, "b": 31.0}, "tie")
 
 
-def run_log(choice="a", toward=(33, 0), rates=(41.8, 34.2), note="measured: 20 of 20"):
-    """A run log with only the fields a draft needs."""
+def run_log(choice="a", toward=(33, 0), rates=(41.8, 34.2), note="measured: 20 of 20", steering=None):
+    """A run log with only the fields a draft needs.
+
+    ``steering`` gives the left and right steering spikes of the two trials.
+    """
     log = {
         "date": "2026-11-12",
         "question": "Tabs or spaces?",
@@ -261,6 +264,11 @@ def run_log(choice="a", toward=(33, 0), rates=(41.8, 34.2), note="measured: 20 o
     }
     if note:
         log["repeatability"] = note
+    if steering:
+        for trial, (left, right) in zip(log["trials"], steering):
+            trial.update(steering_spikes_left=left, steering_spikes_right=right, neurons_active=350)
+        log["graph"] = {"neurons": 165122}
+        log["input"] = {"cells_left": 135, "cells_right": 140}
     return log
 
 
@@ -314,7 +322,7 @@ def test_language_model_gets_only_the_decision_and_never_writes_the_footer():
 
     client = Client()
     draft = build(run_log(), "2026-11-12.json", use_model=True, client=client)
-    assert draft.startswith("A post about tabs.\n\nDecided by the fly:")
+    assert draft.startswith("A post about tabs.\n\nWhat this shows:")  # the line is added by code
     assert "Worded by a language model" in draft
     sent = json.loads(client.beta.messages.request["messages"][0]["content"])
     assert sent == {"question": "Tabs or spaces?", "decided": True, "winner": "tabs",
@@ -830,3 +838,40 @@ def test_site_escapes_what_comes_from_the_logs_and_has_no_scripts(tmp_path):
     assert "<script" not in page
     assert "&lt;script&gt;alert(1)&lt;/script&gt; or not?" in page
     assert "undecided" in page
+
+
+def test_insight_names_a_tie_and_a_margin_inside_the_noise():
+    tie = insight(facts(run_log(choice="undecided", toward=(4, 4))))
+    assert tie.startswith("What this shows: the two counts were equal")
+    close = insight(facts(run_log(choice="b", toward=(13, 14))))
+    assert "the margin was one spike" in close and "inside that noise" in close
+    # A small margin is noise even when the fly went against the contrast.
+    assert "the wiring makes the call" not in close
+    assert "the margin was 4 spikes" in insight(facts(run_log(toward=(9, 5))))
+
+
+def test_insight_says_when_the_wiring_overruled_the_contrast():
+    line = insight(facts(run_log(choice="b", toward=(3, 19))))  # "tabs" has more contrast
+    assert 'the picture with more contrast was "tabs", yet the brain turned to "spaces"' in line
+    assert "4 of 34 pairs" in line
+
+
+def test_insight_is_true_of_the_run_and_fixed_by_the_seed():
+    # Trial 1 shows a on the left, trial 2 on the right.
+    right_only = run_log(toward=(20, 0), steering=[(0, 9), (0, 20)])
+    followed = run_log(toward=(40, 6), steering=[(18, 2), (4, 22)])
+    seen = set()
+    for seed in range(12):
+        right_only["seed"] = followed["seed"] = seed
+        first, second = insight(facts(right_only)), insight(facts(followed))
+        assert first == insight(facts(right_only))  # the same run always gets the same line
+        assert "the turn followed the picture" not in first  # the right side won both times
+        assert "only the" not in second  # both sides fired
+        seen.update((first, second))
+    assert any("only the right steering neuron fired" in line for line in seen)
+    assert any('the turn followed the picture. "tabs" won' in line for line in seen)
+    assert any("350 of 165,122 simulated neurons fired" in line for line in seen)
+    assert any("through 275 cells" in line for line in seen)
+    assert any("the fly cannot read" in line for line in seen)
+    # A log without trial details still gets a true line.
+    assert insight(facts(run_log())).startswith("What this shows: the fly cannot read")
