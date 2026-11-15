@@ -88,8 +88,8 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - **The website** (`dro/site.py`, `web/`) is built from the run logs and
   published on GitHub Pages by the "Site" workflow, at
   <https://demonazgh.github.io/Dro/>. It is one HTML file with one
-  stylesheet and no scripts. The owner has to switch Pages on once
-  (Settings, Pages, Source "GitHub Actions").
+  stylesheet and no scripts. Pages is switched on (source: GitHub
+  Actions). The Telegram channel is <https://t.me/dro_flycorp>.
 - A measured pair can still come out the other way: "Call or text?" did on
   2026-11-15 (experiment 24). Do not describe a measured pair as certain.
 

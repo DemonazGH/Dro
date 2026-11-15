@@ -10,6 +10,9 @@ steering neurons fire, and commits the result to this repository.
 Dro is not conscious, not alive and not an "uploaded" fly. It is a wiring
 diagram with a very simple neuron model on top.
 
+The daily decisions appear on <https://demonazgh.github.io/Dro/> and in the
+Telegram channel <https://t.me/dro_flycorp>.
+
 Status on 2026-11-12: the neuron model passes a check against a published
 result and the pictures reach the steering neuron. Of 42 test pairs, 34 gave
 the same winner in at least 16 of 20 runs. In 30 of those 34 the winner is

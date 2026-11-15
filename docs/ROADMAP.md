@@ -110,7 +110,7 @@ came from an error and must not be presented as the fly's.
 
 - [x] A website on GitHub Pages, built from the run logs after every daily
       run (`python -m dro.site`).
-- [ ] Owner switches GitHub Pages on; then see the first deployment.
+- [x] Owner switches GitHub Pages on; then see the first deployment.
 
 Also in `docs/CONCEPT.md`: the
 "fly is my boss for 30 days" series, the Telegram pet bot.

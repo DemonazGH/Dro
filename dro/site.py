@@ -26,7 +26,7 @@ from .logs import log_order, next_question, post_text, run_logs
 
 REPOSITORY = "https://github.com/DemonazGH/Dro"
 ADDRESS = "https://demonazgh.github.io/Dro/"
-CHANNEL = ""  # address of the Telegram channel; no link is shown while this is empty
+CHANNEL = "https://t.me/dro_flycorp"  # the Telegram channel; no link is shown if this is empty
 NEURONS = 165_122
 # Measured in experiments 21 and 22 of docs/CALIBRATION_NOTES.md.
 PAIRS_MEASURED, PAIRS_REPEATING, PAIRS_FOLLOWING_CONTRAST = 42, 34, 30
