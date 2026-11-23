@@ -21,7 +21,7 @@ the model, and `docs/ROADMAP.md` for what to do next.
 - The pipeline runs end to end on the real connectome: build about 25 s
   after download, one decision about 12 s on one CPU core, about 2 GB of
   memory.
-- Fifty-five tests pass (`python -m pytest -q`).
+- Fifty-seven tests pass (`python -m pytest -q`).
 - The repository is public at `DemonazGH/Dro`. Both workflows have run on
   GitHub: "Tests" passes, "Dro decides" took 63 s by hand, including the
   first graph build, and about 50 s on the second run with the graph
@@ -84,12 +84,23 @@ the model, and `docs/ROADMAP.md` for what to do next.
   `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` exist. Both secrets are set
   and the first post reached the owner's channel on 2026-11-12, sent by the
   "Send the latest post again" workflow. No other channel is automated.
+- **A failed delivery is not sent again by itself.** On 2026-11-20 Telegram
+  answered the daily post with a single 500. The log was already committed,
+  so the later attempts of that day saw it and stopped, and the post never
+  reached the channel (the website has it). Since 2026-11-23 a call to
+  Telegram is tried four times, with pauses of 5, 20 and 60 s, when the
+  fault may pass (5xx, 429, no connection). A fault that outlasts them
+  still needs "Send the latest post again", which sends only the newest
+  post.
 - **GitHub's schedule is late but works.** The first scheduled daily run,
   on 2026-11-13 at 06:23 UTC, never started. The daily workflow therefore
   has five attempts a day and a first job that stops a scheduled attempt
   when today's log exists. On 2026-11-14 and 2026-11-15 the post went out
-  from a scheduled run, around 14:00 UTC, hours after the first slot. If a
-  day is missed, start "Dro decides" by hand.
+  from a scheduled run, around 14:00 UTC, hours after the first slot. From
+  2026-11-16 to 2026-11-23 no day was missed, but every attempt started 8
+  to 12 hours after its slot: the post went out between 14:45 and 18:30
+  UTC, and the one of 2026-11-17 at 00:53 UTC, from the last attempt of the
+  day before. If a day is missed, start "Dro decides" by hand.
 - **The website** (`dro/site.py`, `web/`) is built from the run logs and
   published on GitHub Pages by the "Site" workflow, at
   <https://demonazgh.github.io/Dro/>. It is one HTML file with one

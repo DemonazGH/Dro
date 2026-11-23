@@ -28,10 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No pip cache here: most runs install nothing, and saving a cache that
+      # was never filled failed the run of 2026-11-16.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       # Needs nothing but Python, so an empty inbox costs a few seconds.
       - name: Look into the inbox

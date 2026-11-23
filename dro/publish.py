@@ -27,7 +27,13 @@ from pathlib import Path
 
 from .decide import log_order
 from .draft import post_text
-from .telegram import CAPTION_LIMIT, multipart, send_message, send_photo  # noqa: F401 (multipart is re-exported)
+from .telegram import (  # noqa: F401 (multipart is re-exported)
+    CAPTION_LIMIT,
+    TelegramError,
+    multipart,
+    send_message,
+    send_photo,
+)
 
 
 def send_telegram(
@@ -44,6 +50,19 @@ def send_telegram(
     send_message(token, chat, text, opener)
     called.append("sendMessage")
     return called
+
+
+def hint(error: Exception) -> str:
+    """What the owner can do about a failed delivery."""
+    if isinstance(error, TelegramError) and error.passing:
+        return (
+            "The fault was on Telegram's side or on the way to it, and it lasted through every attempt. "
+            'Nothing needs changing: start the workflow "Send the latest post again" a little later.'
+        )
+    return (
+        "Check that TELEGRAM_CHAT_ID names the channel (@its_name, or a numeric id that starts "
+        "with -100), not the bot, and that the bot is an administrator of that channel."
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -70,11 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         called = send_telegram(text, photo if photo.exists() else None, token, chat)
     except RuntimeError as error:
         print(f"telegram: failed. {error}", file=sys.stderr)
-        print(
-            "Check that TELEGRAM_CHAT_ID names the channel (@its_name, or a numeric id that starts "
-            "with -100), not the bot, and that the bot is an administrator of that channel.",
-            file=sys.stderr,
-        )
+        print(hint(error), file=sys.stderr)
         return 1
     print(f"telegram: sent ({', '.join(called)})")
     return 0

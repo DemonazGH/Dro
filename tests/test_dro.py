@@ -1,7 +1,9 @@
 """Tests that run on a tiny hand-made network, without the real connectome."""
 
+import io
 import json
 import shutil
+import urllib.error
 from pathlib import Path
 
 import numpy as np
@@ -18,11 +20,11 @@ from dro.gate import main as gate_main
 from dro.gate import make_seed as gate_seed
 from dro.graph import Graph
 from dro.paths import cells, drive, path_strength
-from dro import portrait_bot
+from dro import portrait_bot, telegram
 from dro.portrait import load_square
 from dro.portrait import make as make_portrait
 from dro.publish import main as publish_main
-from dro.publish import multipart, send_telegram
+from dro.publish import hint, multipart, send_telegram
 from dro.repeat import add_to_queue, note, repeats, summary
 from dro.repeat import run as repeat_run
 from dro.sanity import sugar_neurons, verdict
@@ -458,6 +460,58 @@ def test_telegram_failure_does_not_leak_the_token():
         raise AssertionError("a refused message must raise")
     body, content_type = multipart({"chat_id": "1"}, "photo", "a.png", b"x")
     assert body.endswith(b"--\r\n") and "boundary=" in content_type
+
+
+class FailingTelegram(FakeTelegram):
+    """Answers with the given HTTP errors first, then accepts the call."""
+
+    def __init__(self, *failures):
+        super().__init__()
+        self.failures = list(failures)
+
+    def __call__(self, request, timeout):
+        self.requests.append(request)
+        if self.failures:
+            code, said = self.failures.pop(0)
+            raise urllib.error.HTTPError(request.full_url, code, "", None, io.BytesIO(json.dumps(said).encode()))
+        return self
+
+
+def test_telegram_tries_again_when_the_fault_is_on_its_side(monkeypatch):
+    waits = []
+    monkeypatch.setattr(telegram.time, "sleep", waits.append)
+    once = FailingTelegram((500, {"ok": False, "description": "Internal Server Error"}))
+    assert send_telegram("the post", None, "SECRET", "1", opener=once) == ["sendMessage"]
+    assert len(once.requests) == 2 and waits == [5]
+
+    slow_down = FailingTelegram((429, {"description": "Too Many Requests", "parameters": {"retry_after": 7}}))
+    send_telegram("the post", None, "SECRET", "1", opener=slow_down)
+    assert waits == [5, 7]
+
+    waits.clear()
+    down = FailingTelegram(*[(502, {})] * 9)
+    try:
+        send_telegram("the post", None, "SECRET", "1", opener=down)
+    except telegram.TelegramError as error:
+        assert error.passing and "502" in str(error) and "SECRET" not in str(error)
+        assert "Telegram's side" in hint(error) and "TELEGRAM_CHAT_ID" not in hint(error)
+    else:
+        raise AssertionError("a fault that lasts must raise in the end")
+    assert len(down.requests) == 4 and waits == [5, 20, 60]
+
+
+def test_telegram_does_not_repeat_a_call_that_was_refused(monkeypatch):
+    waits = []
+    monkeypatch.setattr(telegram.time, "sleep", waits.append)
+    refused = FailingTelegram((403, {"ok": False, "description": "Forbidden: bot is not a member of the channel"}))
+    try:
+        send_telegram("the post", None, "SECRET", "1", opener=refused)
+    except telegram.TelegramError as error:
+        assert not error.passing and "not a member" in str(error) and "SECRET" not in str(error)
+        assert "TELEGRAM_CHAT_ID" in hint(error)
+    else:
+        raise AssertionError("a refused message must raise")
+    assert len(refused.requests) == 1 and waits == []
 
 
 def test_publish_picks_the_newest_post_and_stays_quiet_without_credentials(tmp_path, monkeypatch, capsys):
